@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ingresos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #3B2E20;
+            color: #FFFFFF;
+        }
+        .card {
+            background-color: #E8D5BE;
+            border: 1px solid #825F38;
+        }
+        .card-header {
+            background-color: #825F38;
+            color: #FFFFFF;
+        }
+        .btn-primary {
+            background-color: #825F38;
+            border-color: #825F38;
+        }
+        .btn-primary:hover {
+            background-color: #64482F;
+            border-color: #64482F;
+        }
+        .btn-danger {
+            background-color: #C12E2A;
+            border-color: #C12E2A;
+        }
+        .btn-danger:hover {
+            background-color: #A02420;
+            border-color: #A02420;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-5 mb-4">Gestión de Ingresos</h1>
+        <div class="card">
+            <div class="card-header">
+                <h2>Listado de Ingresos</h2>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cédula</th>
+                            <th>Procedimiento</th>
+                            <th>Fecha</th>
+                            <th>Monto Total</th>
+                            <th>Método de Pago</th>
+                            <th>Moneda</th>
+                            <th>Descuento</th>
+                            <th>Observaciones</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ingreso in ingresos %}
+                        <tr>
+                            <td>{{ ingreso[0] }}</td>
+                            <td>{{ ingreso[1] }} </td>
+                            <td>{{ ingreso[2] }} </td>
+                            <td>{{ ingreso[3] }}</td>
+                            <td>{{ ingreso[4] }}</td>
+                            <td>{{ ingreso[7] }}</td>
+                            <td>{{ ingreso[8] }}</td>
+                            <td>{{ ingreso[6] }}</td>
+                            <td>{{ ingreso[5] }}</td>
+                            <td>
+                                <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ ingreso[0] }}">Editar</a>
+                                <a href="/delete_ingreso/{{ ingreso[0] }}" class="btn btn-danger btn-sm">Eliminar</a>
+                            </td>
+                        </tr>
+                        <!-- Modal de Edición -->
+                        <div class="modal fade" id="editModal{{ ingreso[0] }}" tabindex="-1" aria-labelledby="editModalLabel{{ ingreso[0] }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="editModalLabel{{ ingreso[0] }}">Editar Ingreso</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form action="/edit_ingreso/{{ ingreso[0] }}" method="POST">
+                                            <div class="mb-3">
+                                                <label for="cedula" class="form-label">Cédula</label>
+                                                <select class="form-select" id="cedula" name="cedula">
+                                                    <option value="">Elige una opción</option>
+                                                    {% for paciente in pacientes %}
+                                                        <option value="{{ paciente[0] }}" {% if paciente[0] == ingreso[1] %} selected {% endif %}>{{ paciente[1] }} {{ paciente[2] }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="procedimiento" class="form-label">Procedimiento</label>
+                                                <select class="form-select" id="procedimiento" name="procedimiento">
+                                                    <option value="">Elige una opción</option>
+                                                    {% for procedimiento in procedimientos %}
+                                                        <option value="{{ procedimiento[0] }}" {% if procedimiento[0] == ingreso[2] %} selected {% endif %}>{{ procedimiento[1] }} - {{ procedimiento[3] }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="fecha" class="form-label">Fecha</label>
+                                                <input type="date" class="form-control" id="fecha" name="fecha" value="{{ ingreso[3] }}">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="monto_total" class="form-label">Monto Total</label>
+                                                <input type="text" class="form-control" id="monto_total" name="monto_total" value="{{ ingreso[4] }}">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="metodo_pago" class="form-label">Método de Pago</label>
+                                                <select class="form-select" id="metodo_pago" name="metodo_pago">
+                                                    <option value="">Elige una opción</option>
+                                                    {% for metodo in metodos_pago %}
+                                                        <option value="{{ metodo[0] }}" {% if metodo[0] == ingreso[7] %} selected {% endif %}>{{ metodo[1] }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="moneda" class="form-label">Moneda</label>
+                                                <select class="form-select" id="moneda" name="moneda">
+                                                    <option value="">Elige una opción</option>
+                                                    {% for moneda in monedas %}
+                                                        <option value="{{ moneda[0] }}" {% if moneda[0] == ingreso[8] %} selected {% endif %}>{{ moneda[1] }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="descuento" class="form-label">Descuento</label>
+                                                <input type="text" class="form-control" id="descuento" name="descuento" value="{{ ingreso[6] }}">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="observaciones" class="form-label">Observaciones</label>
+                                                <textarea class="form-control" id="observaciones" name="observaciones">{{ ingreso[5] }}</textarea>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer">
+                <a href="/adminInicio.html" class="btn btn-primary">Volver a Inicio</a>
+            </div>
+        </div>
+        <div class="card mt-5">
+            <div class="card-header">
+                <h2>Agregar Ingreso</h2>
+            </div>
+            <div class="card-body">
+                <form action="/add_ingreso" method="POST">
+                    <div class="mb-3">
+                        <label for="cedula" class="form-label">Cédula</label>
+                        <select class="form-select" id="cedula" name="cedula">
+                            <option value="">Elige una opción</option>
+                            {% for paciente in pacientes %}
+                                <option value="{{ paciente[0] }}">{{ paciente[1] }} {{ paciente[2] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="procedimiento" class="form-label">Procedimiento</label>
+                        <select class="form-select" id="procedimiento" name="procedimiento">
+                            <option value="">Elige una opción</option>
+                            {% for procedimiento in procedimientos %}
+                                <option value="{{ procedimiento[0] }}">{{ procedimiento[1] }} - {{ procedimiento[3] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="fecha" class="form-label">Fecha</label>
+                        <input type="date" class="form-control" id="fecha" name="fecha">
+                    </div>
+                    <div class="mb-3">
+                        <label for="metodo_pago" class="form-label">Método de Pago</label>
+                        <select class="form-select" id="metodo_pago" name="metodo_pago">
+                            <option value="">Elige una opción</option>
+                            {% for metodo in metodos_pago %}
+                                <option value="{{ metodo[0] }}">{{ metodo[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="moneda" class="form-label">Moneda</label>
+                        <select class="form-select" id="moneda" name="moneda">
+                            <option value="">Elige una opción</option>
+                            {% for moneda in monedas %}
+                                <option value="{{ moneda[0] }}">{{ moneda[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descuento" class="form-label">Descuento</label>
+                        <input type="text" class="form-control" id="descuento" name="descuento">
+                    </div>
+                    <div class="mb-3">
+                        <label for="monto_total" class="form-label">Monto Total</label>
+                        <input type="text" class="form-control" id="monto_total" name="monto_total">
+                    </div>
+                    <div class="mb-3">
+                        <label for="observaciones" class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="observaciones" name="observaciones"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Agregar Ingreso</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
