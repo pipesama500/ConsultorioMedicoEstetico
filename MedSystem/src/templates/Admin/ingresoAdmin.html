@@ -40,6 +40,20 @@
         .modal-content {
             background-color: #E8D5BE;
         }
+
+        a {
+            color: #3B2E20; /* Color de los enlaces */
+            text-decoration: none; /* Eliminar subrayado de los enlaces */
+        }
+        a:hover {
+            color: #9B7453; /* Color de los enlaces al pasar el ratón */
+            text-decoration: none; /* Asegurar que no haya subrayado al pasar el ratón */
+        }
+        a:active, a:focus {
+            color: #3B2E20; /* Color de los enlaces cuando están activos o enfocados */
+            text-decoration: none; /* Asegurar que no haya subrayado cuando están activos o enfocados */
+        }
+
     </style>
 </head>
 <body>
@@ -47,10 +61,16 @@
         <h1 class="mt-5 mb-4">Gestión de Ingresos</h1>
 
         {% if error %}
-        <div class="alert alert-danger">{{ error }}</div>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ error }} 
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
         {% endif %}
         {% if success %}
-        <div class="alert alert-success">{{ success }}</div>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ success }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
         {% endif %}
         
         <!-- Agregar Ingreso Modal -->
@@ -65,13 +85,8 @@
                         <!-- Formulario para agregar ingreso -->
                         <form action="/add_ingreso" method="POST">
                             <div class="mb-3">
-                                <label for="cedula" class="form-label">Cédula</label>
-                                <select class="form-select" id="cedula" name="cedula">
-                                    <option value="">Elige una opción</option>
-                                    {% for paciente in pacientes %}
-                                        <option value="{{ paciente[0] }}">{{ paciente[1] }} {{ paciente[2] }}</option>
-                                    {% endfor %}
-                                </select>
+                                <label for="Cedula" class="form-label">Cedula paciente</label>
+                                <input type="text" class="form-control" id="Cedula" name="Cedula" >
                             </div>
                             <div class="mb-3">
                                 <label for="procedimiento" class="form-label">Procedimiento</label>
@@ -106,7 +121,7 @@
                             </div>
                             <div class="mb-3">
                                 <label for="Precio" class="form-label">Precio</label>
-                                <input type="text" class="form-control" id="Precio" name="Precio" >
+                                <input type="text" class="form-control" id="Precio" name="Precio" readonly >
                             </div>
                             <div class="mb-3">
                                 <label for="descuento" class="form-label">Descuento</label>
@@ -114,7 +129,7 @@
                             </div>
                             <div class="mb-3">
                                 <label for="monto_total" class="form-label">Monto Total</label>
-                                <input type="text" class="form-control" id="monto_total" name="monto_total">
+                                <input type="text" class="form-control" id="monto_total" name="monto_total" readonly>
                             </div>
                             <div class="mb-3">
                                 <label for="observaciones" class="form-label">Observaciones</label>
@@ -155,8 +170,8 @@
                         {% for ingreso in ingresos %}
                         <tr>
                             <td>{{ ingreso[0] }}</td>
-                            <td>{{ ingreso[1] }} </td>
-                            <td>{{ ingreso[2] }} </td>
+                            <td><a href="{{ url_for('listar_pacientes') }}" >{{ ingreso[1] }}</a>  </td></td>
+                            <td> <a href="{{ url_for('procedimientos') }}" >{{ ingreso[2] }}</a>  </td>
                             <td>{{ ingreso[3] }}</td>
                             <td>{{ ingreso[4] }}</td>
                             <td>{{ ingreso[7] }}</td>
@@ -221,7 +236,7 @@
                                             </div>
                                             <div class="mb-3">
                                                 <label for="Precio1" class="form-label">Precio</label>
-                                                <input type="text" class="form-control" id="Precio1" name="Precio1">
+                                                <input type="text" class="form-control" id="Precio1" name="Precio1" readonly>
                                             </div>
                                             <div class="mb-3">
                                                 <label for="descuento1" class="form-label">Descuento</label>
@@ -233,7 +248,7 @@
                                             </div>
                                             <div class="mb-3">
                                                 <label for="concepto1" class="form-label">Concepto</label>
-                                                <input type="text" class="form-control" id="concepto1" name="concepto1" >
+                                                <input type="text" class="form-control" id="concepto1" name="concepto1" readonly>
                                             </div>
                                             <div class="mb-3">
                                                 <label for="observaciones" class="form-label">Observaciones</label>
