@@ -45,19 +45,18 @@
 <body>
     <h1 class="text-center mt-5 mb-5">Monedas</h1>
     <div class="container">
+
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+
         <div class="card shadow">
             <div class="card-body">
-                <form action="/add_moneda" method="POST">
-                    <div class="row mb-3">
-                        <div class="col">
-                            <label for="nombre" class="form-label">Nombre</label>
-                            <input type="text" class="form-control" id="nombre" name="nombre">
-                        </div>
-                        <div class="col">
-                            <button class="btn btn-primary mb-3 mt-4" type="submit">Guardar</button>
-                        </div>
-                    </div>
-                </form>
+                <!-- Botón para abrir el modal de agregar moneda -->
+                <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addModal">Agregar Moneda</button>
                 <!-- Tabla -->
                 <table class="table table-bordered">
                     <thead>
@@ -75,7 +74,7 @@
                                 <td>{{ moneda[1] }}</td>
                                 <td>
                                     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ moneda[0] }}">Editar</button>
-                                    <!-- Modal -->
+                                    <!-- Modal de Edición -->
                                     <div class="modal fade" id="editModal{{ moneda[0] }}" tabindex="-1" aria-labelledby="editModalLabel{{ moneda[0] }}" aria-hidden="true">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
@@ -106,6 +105,27 @@
             </div>
             <div class="card-footer text-muted">
                 <a href="/adminInicio.html" class="btn btn-primary">Ir a Inicio</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Agregar -->
+    <div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addModalLabel">Agregar Moneda</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="/add_moneda" method="POST">
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

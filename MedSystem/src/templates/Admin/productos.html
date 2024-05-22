@@ -44,48 +44,68 @@
 </head>
 <body>
     <h1 class="text-center mt-5 mb-5">Productos</h1>
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    {% if success %}
+    <div class="alert alert-success">{{ success }}</div>
+    {% endif %}
     <div class="container">
         <div class="card shadow">
             <div class="card-body">
-                <form action="/add_producto" method="POST">
-                    <div class="mb-3">
-                        <label for="nombre" class="form-label">Nombre de Producto</label>
-                        <input type="text" class="form-control" id="nombre" name="nombre">
+                <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addProductoModal">Agregar Producto</button>
+                <!-- Modal -->
+                <div class="modal fade" id="addProductoModal" tabindex="-1" aria-labelledby="addProductoModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="addProductoModalLabel">Agregar Producto</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form action="/add_producto" method="POST">
+                                    <div class="mb-3">
+                                        <label for="nombre" class="form-label">Nombre de Producto</label>
+                                        <input type="text" class="form-control" id="nombre" name="nombre">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="categoria" class="form-label">Categoría</label>
+                                        <select class="form-select" id="categoria" name="categoria">
+                                            {% for categoria in categorias %}
+                                                <option value="{{ categoria[0] }}">{{ categoria[1] }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="proveedor" class="form-label">Proveedor</label>
+                                        <select class="form-select" id="proveedor" name="proveedor">
+                                            {% for proveedor in proveedores %}
+                                                <option value="{{ proveedor[0] }}">{{ proveedor[1] }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="precio_compra" class="form-label">Precio de Compra</label>
+                                        <input type="text" class="form-control" id="precio_compra" name="precio_compra">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="descripcion" class="form-label">Descripción</label>
+                                        <textarea class="form-control" id="descripcion" name="descripcion" rows="3"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="stock_minimo" class="form-label">Stock Mínimo</label>
+                                        <input type="text" class="form-control" id="stock_minimo" name="stock_minimo">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="stock_actual" class="form-label">Stock Actual</label>
+                                        <input type="text" class="form-control" id="stock_actual" name="stock_actual">
+                                    </div>
+                                    <button class="btn btn-primary mb-3" type="submit">Guardar</button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="categoria" class="form-label">Categoría</label>
-                        <select class="form-select" id="categoria" name="categoria">
-                            {% for categoria in categorias %}
-                                <option value="{{ categoria[0] }}">{{ categoria[1] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="proveedor" class="form-label">Proveedor</label>
-                        <select class="form-select" id="proveedor" name="proveedor">
-                            {% for proveedor in proveedores %}
-                                <option value="{{ proveedor[0] }}">{{ proveedor[1] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="precio_compra" class="form-label">Precio de Compra</label>
-                        <input type="text" class="form-control" id="precio_compra" name="precio_compra">
-                    </div>
-                    <div class="mb-3">
-                        <label for="descripcion" class="form-label">Descripción</label>
-                        <textarea class="form-control" id="descripcion" name="descripcion" rows="3"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="stock_minimo" class="form-label">Stock Mínimo</label>
-                        <input type="text" class="form-control" id="stock_minimo" name="stock_minimo">
-                    </div>
-                    <div class="mb-3">
-                        <label for="stock_actual" class="form-label">Stock Actual</label>
-                        <input type="text" class="form-control" id="stock_actual" name="stock_actual">
-                    </div>
-                    <button class="btn btn-primary mb-3" type="submit">Guardar</button>
-                </form>
+                </div>
                 <!-- Tabla -->
                 <table class="table table-bordered">
                     <thead>
@@ -147,19 +167,23 @@
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="precio_compra" class="form-label">Precio de Compra</label>
-                                                            <input type="text" class="form-control" id="precio_compra" name="precio_compra" value="{{ producto[5] }}">
+                                                            <input type="text" class="form-control" id="precio_compra" name="precio_compra" value="{{ producto[4] }}">
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="descripcion" class="form-label">Descripción</label>
-                                                            <textarea class="form-control" id="descripcion" name="descripcion" rows="3">{{ producto[6] }}</textarea>
+                                                            <textarea class="form-control" id="descripcion" name="descripcion" rows="3">{{ producto[5] }}</textarea>
                                                         </div>
                                                         <div class="mb-3">
                                                             <label for="stock_minimo" class="form-label">Stock Mínimo</label>
-                                                            <input type="text" class="form-control" id="stock_minimo" name="stock_minimo" value="{{ producto[7] }}">
+                                                            <input type="text" class="form-control" id="stock_minimo" name="stock_minimo" value="{{ producto[6] }}">
                                                         </div>
                                                         <div class="mb-3">
-                                                            <label for="stock_agregar" class="form-label">Agregar al Stock Actual</label>
-                                                            <input type="text" class="form-control" id="stock_agregar" name="stock_agregar">
+                                                            <label for="stock_actual" class="form-label">Stock Actual</label>
+                                                            <input type="text" class="form-control" id="stock_actual" name="stock_actual" value="{{ producto[7] }}">
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="stock_agregar"  class="form-label">Agregar al Stock Actual</label>
+                                                            <input type="number" class="form-control" id="stock_agregar" name="stock_agregar"  value="0">
                                                         </div>
                                                         <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                                                     </form>

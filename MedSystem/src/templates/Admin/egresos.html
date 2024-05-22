@@ -44,6 +44,12 @@
 </head>
 <body>
     <div class="container">
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
         <h1 class="mt-5 mb-4">Gestión de Egresos</h1>
         <div class="card">
             <div class="card-header">
@@ -131,51 +137,58 @@
                 </table>
             </div>
             <div class="card-footer">
+                <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">Agregar Egreso</a>
                 <a href="/adminInicio.html" class="btn btn-primary">Volver a Inicio</a>
                 <a href="{{ url_for('ingresos') }}" class="btn btn-primary">Ir a Ingresos</a>
                 <a href="{{ url_for('caja') }}" class="btn btn-primary">Ir a Caja</a>
             </div>
         </div>
-        <div class="card mt-5">
-            <div class="card-header">
-                <h2>Agregar Egreso</h2>
-            </div>
-            <div class="card-body">
-                <form action="/add_egreso" method="POST">
-                    <div class="mb-3">
-                        <label for="concepto" class="form-label">Concepto</label>
-                        <input type="text" class="form-control" id="concepto" name="concepto">
-                    </div>
-                    <div class="mb-3">
-                        <label for="monto" class="form-label">Monto</label>
-                        <input type="text" class="form-control" id="monto" name="monto">
-                    </div>
-                    <div class="mb-3">
-                        <label for="fecha" class="form-label">Fecha</label>
-                        <input type="date" class="form-control" id="fecha" name="fecha">
-                    </div>
-                    <div class="mb-3">
-                        <label for="metodo_pago" class="form-label">Método de Pago</label>
-                        <select class="form-select" id="metodo_pago" name="metodo_pago">
-                            {% for metodo in metodos_pago %}
-                                <option value="{{ metodo[0] }}">{{ metodo[1] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="moneda" class="form-label">Moneda</label>
-                        <select class="form-select" id="moneda" name="moneda">
-                            {% for moneda in monedas %}
-                                <option value="{{ moneda[0] }}">{{ moneda[1] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="observaciones" class="form-label">Observaciones</label>
-                        <textarea class="form-control" id="observaciones" name="observaciones"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Agregar Egreso</button>
-                </form>
+    </div>
+    <!-- Modal de Agregar -->
+    <div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addModalLabel">Agregar Egreso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="/add_egreso" method="POST">
+                        <div class="mb-3">
+                            <label for="concepto" class="form-label">Concepto</label>
+                            <input type="text" class="form-control" id="concepto" name="concepto">
+                        </div>
+                        <div class="mb-3">
+                            <label for="monto" class="form-label">Monto</label>
+                            <input type="text" class="form-control" id="monto" name="monto">
+                        </div>
+                        <div class="mb-3">
+                            <label for="fecha" class="form-label">Fecha</label>
+                            <input type="date" class="form-control" id="fecha" name="fecha">
+                        </div>
+                        <div class="mb-3">
+                            <label for="metodo_pago" class="form-label">Método de Pago</label>
+                            <select class="form-select" id="metodo_pago" name="metodo_pago">
+                                {% for metodo in metodos_pago %}
+                                    <option value="{{ metodo[0] }}">{{ metodo[1] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="moneda" class="form-label">Moneda</label>
+                            <select class="form-select" id="moneda" name="moneda">
+                                {% for moneda in monedas %}
+                                    <option value="{{ moneda[0] }}">{{ moneda[1] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="observaciones" class="form-label">Observaciones</label>
+                            <textarea class="form-control" id="observaciones" name="observaciones"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Agregar Egreso</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

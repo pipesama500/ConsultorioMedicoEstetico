@@ -44,20 +44,40 @@
 </head>
 <body>
     <h1 class="text-center mt-5 mb-5">Proveedores</h1>
+    {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    {% if success %}
+    <div class="alert alert-success">{{ success }}</div>
+    {% endif %}
     <div class="container">
         <div class="card shadow">
             <div class="card-body">
-                <form action="/add_proveedor" method="POST">
-                    <div class="mb-3">
-                        <label for="nombre" class="form-label">Nombre de Proveedor</label>
-                        <input type="text" class="form-control" id="nombre" name="nombre">
+                <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addProveedorModal">Agregar Proveedor</button>
+                <!-- Modal -->
+                <div class="modal fade" id="addProveedorModal" tabindex="-1" aria-labelledby="addProveedorModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="addProveedorModalLabel">Agregar Proveedor</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form action="/add_proveedor" method="POST">
+                                    <div class="mb-3">
+                                        <label for="nombre" class="form-label">Nombre de Proveedor</label>
+                                        <input type="text" class="form-control" id="nombre" name="nombre">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="contacto" class="form-label">Contacto</label>
+                                        <input type="text" class="form-control" id="contacto" name="contacto">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Guardar</button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="contacto" class="form-label">Contacto</label>
-                        <input type="text" class="form-control" id="contacto" name="contacto">
-                    </div>
-                    <button class="btn btn-primary mb-3" type="submit">Guardar</button>
-                </form>
+                </div>
                 <!-- Tabla -->
                 <table class="table table-bordered">
                     <thead>

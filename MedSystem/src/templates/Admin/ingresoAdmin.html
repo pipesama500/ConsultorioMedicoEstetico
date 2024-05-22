@@ -45,11 +45,97 @@
 <body>
     <div class="container">
         <h1 class="mt-5 mb-4">Gestión de Ingresos</h1>
-        <div class="card">
+
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        {% if success %}
+        <div class="alert alert-success">{{ success }}</div>
+        {% endif %}
+        
+        <!-- Agregar Ingreso Modal -->
+        <div class="modal fade" id="addIngresoModal" tabindex="-1" aria-labelledby="addIngresoModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addIngresoModalLabel">Agregar Ingreso</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Formulario para agregar ingreso -->
+                        <form action="/add_ingreso" method="POST">
+                            <div class="mb-3">
+                                <label for="cedula" class="form-label">Cédula</label>
+                                <select class="form-select" id="cedula" name="cedula">
+                                    <option value="">Elige una opción</option>
+                                    {% for paciente in pacientes %}
+                                        <option value="{{ paciente[0] }}">{{ paciente[1] }} {{ paciente[2] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="procedimiento" class="form-label">Procedimiento</label>
+                                <select class="form-select" id="procedimiento" name="procedimiento" onchange="obtenerPrecio()">
+                                    <option value="">Elige una opción</option>
+                                    {% for procedimiento in procedimientos %}
+                                        <option value="{{ procedimiento[0] }}" cantidadProducto="{{ procedimiento[5]}}" concepto="{{ procedimiento[1] }}" data-id="{{ procedimiento[0] }}" data-precio="{{ procedimiento[3] }}">{{ procedimiento[1] }} </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="fecha" class="form-label">Fecha</label>
+                                <input type="date" class="form-control" id="fecha" name="fecha">
+                            </div>
+                            <div class="mb-3">
+                                <label for="metodo_pago" class="form-label">Método de Pago</label>
+                                <select class="form-select" id="metodo_pago" name="metodo_pago">
+                                    <option value="">Elige una opción</option>
+                                    {% for metodo in metodos_pago %}
+                                        <option value="{{ metodo[0] }}">{{ metodo[1] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="moneda" class="form-label">Moneda</label>
+                                <select class="form-select" id="moneda" name="moneda">
+                                    <option value="">Elige una opción</option>
+                                    {% for moneda in monedas %}
+                                        <option value="{{ moneda[0] }}">{{ moneda[1] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="Precio" class="form-label">Precio</label>
+                                <input type="text" class="form-control" id="Precio" name="Precio" >
+                            </div>
+                            <div class="mb-3">
+                                <label for="descuento" class="form-label">Descuento</label>
+                                <input type="text" class="form-control" id="descuento" name="descuento"  onchange="calcularMontoTotal()">
+                            </div>
+                            <div class="mb-3">
+                                <label for="monto_total" class="form-label">Monto Total</label>
+                                <input type="text" class="form-control" id="monto_total" name="monto_total">
+                            </div>
+                            <div class="mb-3">
+                                <label for="observaciones" class="form-label">Observaciones</label>
+                                <textarea class="form-control" id="observaciones" name="observaciones"></textarea>
+                            </div>
+                            <input type="hidden" id="idProcedimiento" name="idProcedimiento">
+                            <input type="hidden" id="concepto" name="concepto">
+                            <input type="hidden" id="cantidadProducto" name="cantidadProducto">
+                            <button type="submit" class="btn btn-primary">Agregar Ingreso</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-5">
             <div class="card-header">
                 <h2>Listado de Ingresos</h2>
             </div>
             <div class="card-body">
+                <!-- Tabla de ingresos -->
                 <table class="table table-bordered">
                     <thead>
                         <tr>
@@ -106,7 +192,7 @@
                                                 <select class="form-select" id="procedimiento1" name="procedimiento1" onchange="obtenerPrecioEdit()" >
                                                     <option value="">Elige una opción</option>
                                                     {% for procedimiento in procedimientos %}
-                                                        <option value="{{ procedimiento[0] }}" concepto="{{ procedimiento[1] }}" id-data="{{ procedimiento[0] }}" data-precio="{{ procedimiento[3] }}" {% if procedimiento[0] == ingreso[2] %} selected {% endif %}>{{ procedimiento[1] }} - {{ procedimiento[3] }}</option>
+                                                        <option value="{{ procedimiento[0] }}" cantidadProducto="{{ procedimiento[5]}}" concepto="{{ procedimiento[1] }}" id-data="{{ procedimiento[0] }}" data-precio="{{ procedimiento[3] }}" {% if procedimiento[0] == ingreso[2] %} selected {% endif %}>{{ procedimiento[1] }} - {{ procedimiento[3] }}</option>
                                                     {% endfor %}
                                                 </select>
                                             </div>
@@ -154,6 +240,7 @@
                                                 <textarea class="form-control" id="observaciones" name="observaciones">{{ ingreso[5] }}</textarea>
                                             </div>
                                             <input type="hidden" id="idProcedimiento1" name="idProcedimiento">
+                                            <input type="hidden" id="cantidadProducto1" name="cantidadProducto1">
                                             <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                                         </form>
                                     </div>
@@ -168,77 +255,14 @@
                 <a href="{{ url_for('adminInicio') }}" class="btn btn-primary">Volver a Inicio</a>
                 <a href="{{ url_for('egresos') }}" class="btn btn-primary">Ir a Egresos</a>
                 <a href="{{ url_for('caja') }}" class="btn btn-primary">Ir a Caja</a>
-            </div>
-        </div>
-        <div class="card mt-5">
-            <div class="card-header">
-                <h2>Agregar Ingreso</h2>
-            </div>
-            <div class="card-body">
-                <form action="/add_ingreso" method="POST">
-                    <div class="mb-3">
-                        <label for="cedula" class="form-label">Cédula</label>
-                        <select class="form-select" id="cedula" name="cedula">
-                            <option value="">Elige una opción</option>
-                            {% for paciente in pacientes %}
-                                <option value="{{ paciente[0] }}">{{ paciente[1] }} {{ paciente[2] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="procedimiento" class="form-label">Procedimiento</label>
-                        <select class="form-select" id="procedimiento" name="procedimiento" onchange="obtenerPrecio()">
-                            <option value="">Elige una opción</option>
-                            {% for procedimiento in procedimientos %}
-                                <option value="{{ procedimiento[0] }}" concepto="{{ procedimiento[1] }}" data-id="{{ procedimiento[0] }}" data-precio="{{ procedimiento[3] }}">{{ procedimiento[1] }} </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="fecha" class="form-label">Fecha</label>
-                        <input type="date" class="form-control" id="fecha" name="fecha">
-                    </div>
-                    <div class="mb-3">
-                        <label for="metodo_pago" class="form-label">Método de Pago</label>
-                        <select class="form-select" id="metodo_pago" name="metodo_pago">
-                            <option value="">Elige una opción</option>
-                            {% for metodo in metodos_pago %}
-                                <option value="{{ metodo[0] }}">{{ metodo[1] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="moneda" class="form-label">Moneda</label>
-                        <select class="form-select" id="moneda" name="moneda">
-                            <option value="">Elige una opción</option>
-                            {% for moneda in monedas %}
-                                <option value="{{ moneda[0] }}">{{ moneda[1] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="Precio" class="form-label">Precio</label>
-                        <input type="text" class="form-control" id="Precio" name="Precio" >
-                    </div>
-                    <div class="mb-3">
-                        <label for="descuento" class="form-label">Descuento</label>
-                        <input type="text" class="form-control" id="descuento" name="descuento"  onchange="calcularMontoTotal()">
-                    </div>
-                    <div class="mb-3">
-                        <label for="monto_total" class="form-label">Monto Total</label>
-                        <input type="text" class="form-control" id="monto_total" name="monto_total">
-                    </div>
-                    <div class="mb-3">
-                        <label for="observaciones" class="form-label">Observaciones</label>
-                        <textarea class="form-control" id="observaciones" name="observaciones"></textarea>
-                    </div>
-                    <input type="hidden" id="idProcedimiento" name="idProcedimiento">
-                    <input type="hidden" id="concepto" name="concepto">
-                    <button type="submit" class="btn btn-primary">Agregar Ingreso</button>
-                </form>
+                <!-- Botón para abrir el modal de agregar ingreso -->
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addIngresoModal">
+                    Agregar Ingreso
+                </button>
             </div>
         </div>
     </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
@@ -256,16 +280,16 @@
             var concepto = selectedOption.getAttribute('concepto');
             console.log("concepto: ", concepto);
 
+            var cantidadProducto = selectedOption.getAttribute('cantidadProducto');
+            console.log("cantidadProducto: ", cantidadProducto);
+
             var idProcedimiento = selectedOption.getAttribute('data-id');
             console.log("id procedimiento: ", idProcedimiento);
 
             document.getElementById("Precio").value = precio;
             document.getElementById("idProcedimiento").value = idProcedimiento;
             document.getElementById("concepto").value = concepto;
-
-            concep = document.getElementById("concepto").value
-
-            console.log("concep: ", concep);
+            document.getElementById("cantidadProducto").value = cantidadProducto;
 
             calcularMontoTotal();
         }

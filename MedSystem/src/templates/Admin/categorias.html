@@ -47,13 +47,18 @@
     <div class="container">
         <div class="card shadow">
             <div class="card-body">
-                <form action="/add_categoria" method="POST">
-                    <div class="mb-3">
-                        <label for="nombre" class="form-label">Nombre de Categoría</label>
-                        <input type="text" class="form-control" id="nombre" name="nombre">
+                {% if error %}
+                    <div class="alert alert-danger" role="alert">
+                        {{ error }}
                     </div>
-                    <button class="btn btn-primary mb-3" type="submit">Guardar</button>
-                </form>
+                {% endif %}
+                {% if success_msg %}
+                    <div class="alert alert-success" role="alert">
+                        {{ success_msg }}
+                    </div>
+                {% endif %}
+                <!-- Botón para abrir el modal de agregar categoría -->
+                <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addModal">Agregar Categoría</button>
                 <!-- Tabla -->
                 <table class="table table-bordered">
                     <thead>
@@ -71,7 +76,7 @@
                                 <td>{{ categoria[1] }}</td>
                                 <td>
                                     <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ categoria[0] }}">Editar</button>
-                                    <!-- Modal -->
+                                    <!-- Modal de Edición -->
                                     <div class="modal fade" id="editModal{{ categoria[0] }}" tabindex="-1" aria-labelledby="editModalLabel{{ categoria[0] }}" aria-hidden="true">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
@@ -102,6 +107,27 @@
             </div>
             <div class="card-footer text-muted">
                 <a href="/adminInicio.html" class="btn btn-primary">Ir a Inicio</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Agregar Categoría -->
+    <div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addModalLabel">Agregar Categoría</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form action="/add_categoria" method="POST">
+                        <div class="mb-3">
+                            <label for="nombre" class="form-label">Nombre de Categoría</label>
+                            <input type="text" class="form-control" id="nombre" name="nombre">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
