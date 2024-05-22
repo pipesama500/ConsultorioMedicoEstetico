@@ -591,6 +591,10 @@ def eliminar_paciente(id):
 
 @app.route('/ingresoAdmin')
 def ingresos():
+    
+    error = request.args.get('error')
+    success = request.args.get('success')
+    
     cursor = db.database.cursor()
     cursor.execute("SELECT i.IdIngreso, i.Cedula, i.IdProcedimiento, i.Fecha, i.MontoTotal, i.Observaciones, i.Descuento, i.IdMetodoPago, i.IdMoneda, p.Nombre, p.Apellido, pr.NombreProcedimiento, mp.NombreMetodo, m.NombreMoneda FROM Ingresos i JOIN Pacientes p ON i.Cedula = p.Cedula JOIN Procedimientos pr ON i.IdProcedimiento = pr.IdProcedimiento JOIN MetodosPago mp ON i.IdMetodoPago = mp.IdMetodoPago JOIN Monedas m ON i.IdMoneda = m.IdMoneda")
     ingresos = cursor.fetchall()
@@ -603,11 +607,11 @@ def ingresos():
     cursor.execute("SELECT * FROM Monedas")
     monedas = cursor.fetchall()
     cursor.close()
-    return render_template('ingresoAdmin.html', ingresos=ingresos, pacientes=pacientes, procedimientos=procedimientos, metodos_pago=metodos_pago, monedas=monedas)
+    return render_template('ingresoAdmin.html', ingresos=ingresos, pacientes=pacientes, procedimientos=procedimientos, metodos_pago=metodos_pago, monedas=monedas, error=error, success=success)
 
 @app.route('/add_ingreso', methods=['POST'])
 def add_ingreso():
-    cedula = request.form['cedula']
+    cedula = request.form['Cedula']
     procedimiento = request.form['procedimiento']
     fecha = request.form['fecha']
     monto_total = request.form['monto_total']
@@ -616,29 +620,49 @@ def add_ingreso():
     descuento = request.form['descuento']
     observaciones = request.form['observaciones']
     concepto = request.form['concepto']
-
-    cursor = db.database.cursor()
-
-    # Insertar el ingreso en la tabla Ingresos
-    cursor.execute("INSERT INTO Ingresos (Cedula, IdProcedimiento, Fecha, MontoTotal, IdMetodoPago, IdMoneda, Descuento, Observaciones) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (cedula, procedimiento, fecha, monto_total, metodo_pago, moneda, descuento, observaciones))
-    db.database.commit()  # Confirmar la transacción antes de obtener el ID
-    ingreso_id = cursor.lastrowid  # Obtener el ID del ingreso recién insertado
     
-    # Insertar en la tabla Caja
-    cursor.execute("INSERT INTO Caja (Fecha, TipoMovimiento, IdIngreso, Concepto, Monto, IdMetodoPago, IdMoneda, Observaciones) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (fecha, 'Ingreso', ingreso_id, concepto, monto_total, metodo_pago, moneda, observaciones))
     
-    # Obtener la cantidad de producto utilizado en el procedimiento
-    cursor.execute("SELECT IdProductoPrincipal, cantidadProducto FROM Procedimientos WHERE IdProcedimiento = %s", (procedimiento,))
-    producto_info = cursor.fetchone()
-    producto_id, cantidad_producto = producto_info[0], producto_info[1]
     
-    # Actualizar el stock actual en la tabla Productos
-    cursor.execute("UPDATE Productos SET StockActual = StockActual - %s WHERE IdProducto = %s", (cantidad_producto, producto_id))
+    try:
+        #verificar si la cedula del paciente ya existe en la base de datos
+        cursor = db.database.cursor()
+        cursor.execute("SELECT COUNT(*) FROM Pacientes WHERE Cedula = %s", (cedula,))
+        cedula_existente = cursor.fetchone()[0] > 0
+        
+        if cedula_existente:
+            cursor.close()
+            
+            cursor = db.database.cursor()
+            
+            # Insertar el ingreso en la tabla Ingresos
+            cursor.execute("INSERT INTO Ingresos (Cedula, IdProcedimiento, Fecha, MontoTotal, IdMetodoPago, IdMoneda, Descuento, Observaciones) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (cedula, procedimiento, fecha, monto_total, metodo_pago, moneda, descuento, observaciones))
+            db.database.commit()  # Confirmar la transacción antes de obtener el ID
+            ingreso_id = cursor.lastrowid  # Obtener el ID del ingreso recién insertado
+            
+            # Insertar en la tabla Caja
+            cursor.execute("INSERT INTO Caja (Fecha, TipoMovimiento, IdIngreso, Concepto, Monto, IdMetodoPago, IdMoneda, Observaciones) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (fecha, 'Ingreso', ingreso_id, concepto, monto_total, metodo_pago, moneda, observaciones))
+            
+            # Obtener la cantidad de producto utilizado en el procedimiento
+            cursor.execute("SELECT IdProductoPrincipal, cantidadProducto FROM Procedimientos WHERE IdProcedimiento = %s", (procedimiento,))
+            producto_info = cursor.fetchone()
+            producto_id, cantidad_producto = producto_info[0], producto_info[1]
+            
+            # Actualizar el stock actual en la tabla Productos
+            cursor.execute("UPDATE Productos SET StockActual = StockActual - %s WHERE IdProducto = %s", (cantidad_producto, producto_id))
+            
+            db.database.commit()
+            cursor.close()
+            
+            return redirect(url_for('ingresos', success='El ingreso se guardo correctamente'))
+        
+        else:
+            return redirect(url_for('ingresos', error='La cedula digitada no existe. Verifique la cedula que digitada sea correcta'))
     
-    db.database.commit()
-    cursor.close()
-
-    return redirect(url_for('ingresos'))
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al agregar el Ingreso:", e)
+        return redirect(url_for('ingresos', error='Error al agregar el Ingreso'))
+    
 @app.route('/edit_ingreso/<int:id>', methods=['POST'])
 def edit_ingreso(id):
     cedula = request.form['cedula']
@@ -651,40 +675,53 @@ def edit_ingreso(id):
     observaciones = request.form['observaciones']
     concepto = request.form['concepto1']
 
-    cursor = db.database.cursor()
-    cursor.execute("UPDATE Ingresos SET Cedula=%s, IdProcedimiento=%s, Fecha=%s, MontoTotal=%s, IdMetodoPago=%s, IdMoneda=%s, Descuento=%s, Observaciones=%s WHERE IdIngreso=%s", (cedula, procedimiento, fecha, monto_total, metodo_pago, moneda, descuento, observaciones, id))
-    db.database.commit()
-    
-    # Actualizar el registro correspondiente en la tabla Caja
-    cursor.execute("UPDATE Caja SET Fecha=%s, Concepto=%s, Monto=%s, IdMetodoPago=%s, IdMoneda=%s, Observaciones=%s WHERE IdIngreso=%s", (fecha, concepto, monto_total, metodo_pago, moneda, observaciones, id))
-    db.database.commit()
-    
-    cursor.close()
+    try:
+        cursor = db.database.cursor()
+        cursor.execute("UPDATE Ingresos SET Cedula=%s, IdProcedimiento=%s, Fecha=%s, MontoTotal=%s, IdMetodoPago=%s, IdMoneda=%s, Descuento=%s, Observaciones=%s WHERE IdIngreso=%s", (cedula, procedimiento, fecha, monto_total, metodo_pago, moneda, descuento, observaciones, id))
+        db.database.commit()
+        
+        # Actualizar el registro correspondiente en la tabla Caja
+        cursor.execute("UPDATE Caja SET Fecha=%s, Concepto=%s, Monto=%s, IdMetodoPago=%s, IdMoneda=%s, Observaciones=%s WHERE IdIngreso=%s", (fecha, concepto, monto_total, metodo_pago, moneda, observaciones, id))
+        db.database.commit()
+        
+        cursor.close()
 
-    return redirect(url_for('ingresos'))
+        return redirect(url_for('ingresos', success='El ingreso fue actualizado satisfactoriamente'))
+    
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al editar el Ingreso:", e)
+        return redirect(url_for('ingresos', error='Error al editar el Ingreso'))
 
 @app.route('/delete_ingreso/<int:id>')
 def delete_ingreso(id):
-    cursor = db.database.cursor()
     
-    # Obtener el ID de ingreso correspondiente en la tabla Caja
-    cursor.execute("SELECT IdIngreso FROM Caja WHERE IdIngreso=%s", (id,))
-    caja_id = cursor.fetchone()
-    
-    if caja_id:
-        caja_id = caja_id[0]
+    try:
+        cursor = db.database.cursor()
         
-        # Eliminar el registro correspondiente en la tabla Caja
-        cursor.execute("DELETE FROM Caja WHERE IdIngreso=%s", (caja_id,))
+        # Obtener el ID de ingreso correspondiente en la tabla Caja
+        cursor.execute("SELECT IdIngreso FROM Caja WHERE IdIngreso=%s", (id,))
+        caja_id = cursor.fetchone()
+        
+        if caja_id:
+            caja_id = caja_id[0]
+            
+            # Eliminar el registro correspondiente en la tabla Caja
+            cursor.execute("DELETE FROM Caja WHERE IdIngreso=%s", (caja_id,))
+            db.database.commit()
+        
+        # Eliminar el registro de la tabla Ingresos
+        cursor.execute("DELETE FROM Ingresos WHERE IdIngreso=%s", (id,))
         db.database.commit()
+        
+        cursor.close()
+        
+        return redirect(url_for('ingresos', success='El ingreso fue eliminado satisfactoriamente'))
     
-    # Eliminar el registro de la tabla Ingresos
-    cursor.execute("DELETE FROM Ingresos WHERE IdIngreso=%s", (id,))
-    db.database.commit()
-    
-    cursor.close()
-    
-    return redirect(url_for('ingresos'))
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al eliminar el Ingreso:", e)
+        return redirect(url_for('ingresos', error='Error al eliminar el Ingreso'))
 
 
 
@@ -692,6 +729,10 @@ def delete_ingreso(id):
 
 @app.route('/egresos')
 def egresos():
+    
+    error = request.args.get('error')
+    success = request.args.get('success')
+    
     cursor = db.database.cursor()
     cursor.execute("SELECT e.IdEgreso, e.Concepto, e.Monto, e.Fecha, e.Observaciones, mp.NombreMetodo, m.NombreMoneda FROM Egresos e JOIN MetodosPago mp ON e.IdMetodoPago = mp.IdMetodoPago JOIN Monedas m ON e.IdMoneda = m.IdMoneda")
     egresos = cursor.fetchall()
@@ -700,7 +741,7 @@ def egresos():
     cursor.execute("SELECT * FROM Monedas")
     monedas = cursor.fetchall()
     cursor.close()
-    return render_template('egresos.html', egresos=egresos, metodos_pago=metodos_pago, monedas=monedas)
+    return render_template('egresos.html', egresos=egresos, metodos_pago=metodos_pago, monedas=monedas, error=error, success=success)
 
 @app.route('/add_egreso', methods=['POST'])
 def add_egreso():
@@ -711,17 +752,24 @@ def add_egreso():
     moneda = request.form['moneda']
     observaciones = request.form['observaciones']
 
-    cursor = db.database.cursor()
-    cursor.execute("INSERT INTO Egresos (Concepto, Monto, Fecha, IdMetodoPago, IdMoneda, Observaciones) VALUES (%s, %s, %s, %s, %s, %s)", (concepto, monto, fecha, metodo_pago, moneda, observaciones))
-    db.database.commit()  # Confirmar la transacción antes de obtener el ID
-    egreso_id = cursor.lastrowid  # Obtener el ID del egreso recién insertado
-    # Insertar en la tabla Caja
-    cursor.execute("INSERT INTO Caja (Fecha, TipoMovimiento, IdEgreso, Concepto, Monto, IdMetodoPago, IdMoneda, Observaciones) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (fecha, 'Egreso', egreso_id, concepto, monto, metodo_pago, moneda, observaciones))
-    
-    db.database.commit()
-    cursor.close()
+    try:
+        cursor = db.database.cursor()
+        cursor.execute("INSERT INTO Egresos (Concepto, Monto, Fecha, IdMetodoPago, IdMoneda, Observaciones) VALUES (%s, %s, %s, %s, %s, %s)", (concepto, monto, fecha, metodo_pago, moneda, observaciones))
+        db.database.commit()  # Confirmar la transacción antes de obtener el ID
+        egreso_id = cursor.lastrowid  # Obtener el ID del egreso recién insertado
+        # Insertar en la tabla Caja
+        cursor.execute("INSERT INTO Caja (Fecha, TipoMovimiento, IdEgreso, Concepto, Monto, IdMetodoPago, IdMoneda, Observaciones) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (fecha, 'Egreso', egreso_id, concepto, monto, metodo_pago, moneda, observaciones))
+        
+        db.database.commit()
+        cursor.close()
 
-    return redirect(url_for('egresos'))
+        return redirect(url_for('egresos', success='Egreso guardado satisfactoriamente'))
+    
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al agregar egreso")
+        return redirect(url_for('egresos', error='Error al agregar el egreso'))
+        
 
 @app.route('/edit_egreso/<int:id>', methods=['POST'])
 def edit_egreso(id):
@@ -731,41 +779,56 @@ def edit_egreso(id):
     metodo_pago = request.form['metodo_pago']
     moneda = request.form['moneda']
     observaciones = request.form['observaciones']
+    
+    try:
 
-    cursor = db.database.cursor()
-    cursor.execute("UPDATE Egresos SET Concepto=%s, Monto=%s, Fecha=%s, IdMetodoPago=%s, IdMoneda=%s, Observaciones=%s WHERE IdEgreso=%s", (concepto, monto, fecha, metodo_pago, moneda, observaciones, id))
-    db.database.commit()
+        cursor = db.database.cursor()
+        cursor.execute("UPDATE Egresos SET Concepto=%s, Monto=%s, Fecha=%s, IdMetodoPago=%s, IdMoneda=%s, Observaciones=%s WHERE IdEgreso=%s", (concepto, monto, fecha, metodo_pago, moneda, observaciones, id))
+        db.database.commit()
 
-    # Actualizar el registro correspondiente en la tabla Caja
-    cursor.execute("UPDATE Caja SET Fecha=%s, Concepto=%s, Monto=%s, IdMetodoPago=%s, IdMoneda=%s, Observaciones=%s WHERE IdEgreso=%s", (fecha, concepto, monto, metodo_pago, moneda, observaciones, id))
-    db.database.commit()
+        # Actualizar el registro correspondiente en la tabla Caja
+        cursor.execute("UPDATE Caja SET Fecha=%s, Concepto=%s, Monto=%s, IdMetodoPago=%s, IdMoneda=%s, Observaciones=%s WHERE IdEgreso=%s", (fecha, concepto, monto, metodo_pago, moneda, observaciones, id))
+        db.database.commit()
 
-    cursor.close()
+        cursor.close()
 
-    return redirect(url_for('egresos'))
+        return redirect(url_for('egresos', success='El egreso se edito de manera exitosa'))
+    
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al editar el Egreso:", e)
+        return redirect(url_for('egresos', error='Error al editar el Egreso'))
 
 @app.route('/delete_egreso/<int:id>')
 def delete_egreso(id):
-    cursor = db.database.cursor()
+    
+    try:
+    
+        cursor = db.database.cursor()
 
-    # Obtener el ID de egreso correspondiente en la tabla Caja
-    cursor.execute("SELECT IdEgreso FROM Caja WHERE IdEgreso=%s", (id,))
-    caja_id = cursor.fetchone()
+        # Obtener el ID de egreso correspondiente en la tabla Caja
+        cursor.execute("SELECT IdEgreso FROM Caja WHERE IdEgreso=%s", (id,))
+        caja_id = cursor.fetchone()
 
-    if caja_id:
-        caja_id = caja_id[0]
+        if caja_id:
+            caja_id = caja_id[0]
 
-        # Eliminar el registro correspondiente en la tabla Caja
-        cursor.execute("DELETE FROM Caja WHERE IdEgreso=%s", (caja_id,))
+            # Eliminar el registro correspondiente en la tabla Caja
+            cursor.execute("DELETE FROM Caja WHERE IdEgreso=%s", (caja_id,))
+            db.database.commit()
+
+        # Eliminar el registro de la tabla Egresos
+        cursor.execute("DELETE FROM Egresos WHERE IdEgreso=%s", (id,))
         db.database.commit()
 
-    # Eliminar el registro de la tabla Egresos
-    cursor.execute("DELETE FROM Egresos WHERE IdEgreso=%s", (id,))
-    db.database.commit()
+        cursor.close()
 
-    cursor.close()
-
-    return redirect(url_for('egresos'))
+        return redirect(url_for('egresos', success='El egreso se elimino de manera exitosa'))
+    
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al eliminar el Egreso:", e)
+        return redirect(url_for('egresos', error='Error al eliminar el Egreso'))
 
 #------------------------------------|Manejo de monedas|---------------------------------
 
