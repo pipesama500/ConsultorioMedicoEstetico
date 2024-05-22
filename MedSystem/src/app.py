@@ -57,9 +57,12 @@ def roles():
     cursor.execute("SELECT * FROM Roles")
     roles = cursor.fetchall()
     cursor.close()
-    return render_template('roles.html', roles=roles)
-
-
+    
+    # Capturar los mensajes de error y éxito de los parámetros de la URL
+    error = request.args.get('error')
+    success_msg = request.args.get('success_msg')
+    
+    return render_template('roles.html', roles=roles, error=error, success_msg=success_msg)
 
 @app.route('/add_role', methods=['POST'])
 def add_role():
@@ -72,21 +75,19 @@ def add_role():
             rol_existente = cursor.fetchone()[0] > 0
             
             if rol_existente:
-                # Si el rol ya existe, cerrar el cursor y mostrar un mensaje de error
+                # Si el rol ya existe, cerrar el cursor y redirigir con mensaje de error
                 cursor.close()
-                #return render_template('roles.html', error='El rol ya existe. Por favor, elige otro.')
                 return redirect(url_for('roles', error='El rol ya existe. Por favor, elige otro.'))
             else:
                 # Si el rol no existe, proceder con la inserción del nuevo rol en la base de datos
                 cursor.execute("INSERT INTO Roles (NombreRol) VALUES (%s)", (nombre,))
                 db.database.commit()
                 cursor.close()
-                #return render_template('roles.html', success_msg='Rol agregado exitosamente.')
                 return redirect(url_for('roles', success_msg='Rol agregado exitosamente.'))
         except db.Error as e:
             db.database.rollback()
             print("Error al agregar el rol:", e)
-            return render_template('roles.html', error='Error al agregar el rol')
+            return redirect(url_for('roles', error='Error al agregar el rol'))
     else:
         return redirect(url_for('roles'))
 
@@ -110,140 +111,250 @@ def delete_role(id):
 
 #------------------------------------|Manejo de usuarios|---------------------------------
 
+# Ruta para mostrar usuarios
 @app.route('/usuarios')
 def usuarios():
+    # Recibir mensajes de error o éxito desde la URL
+    error = request.args.get('error')
+    success = request.args.get('success')
+
     cursor = db.database.cursor()
     cursor.execute("SELECT * FROM Usuarios")
     users = cursor.fetchall()
-    cursor.execute("SELECT IdRol FROM Roles")
+    cursor.execute("SELECT * FROM Roles")
     roles = cursor.fetchall()
     cursor.close()
-    return render_template('usuarios.html', users=users, roles=roles)
+    return render_template('usuarios.html', users=users, roles=roles, error=error, success=success)
 
+# Verificar si el email del usuario ya existe
+def email_existe(email):
+    try:
+        with db.database.cursor() as cursor:
+            sql = "SELECT COUNT(*) FROM Usuarios WHERE Email = %s"
+            cursor.execute(sql, (email,))
+            resultado = cursor.fetchone()
+            return resultado[0] > 0
+    except db.Error as e:
+        print("Error al consultar la base de datos:", e)
+        return False
+
+# Agregar usuario
 @app.route('/add_user', methods=['POST'])
 def add_user():
-    nombre = request.form['nombre']
-    apellido = request.form['apellido']
-    email = request.form['email']
-    contrasena = request.form['contrasena']
-    idRol = request.form['idRol']
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        apellido = request.form['apellido']
+        email = request.form['email']
+        contrasena = request.form['contrasena']
+        idRol = request.form['idRol']
 
-    cursor = db.database.cursor()
-    cursor.execute("INSERT INTO Usuarios (Nombre, Apellido, Email, Contrasena, IdRol) VALUES (%s, %s, %s, %s, %s)", (nombre, apellido, email, contrasena, idRol))
-    db.database.commit()
-    cursor.close()
+        try:
+            # Verificar si el email ya existe en la base de datos
+            cursor = db.database.cursor()
+            cursor.execute("SELECT COUNT(*) FROM Usuarios WHERE Email = %s", (email,))
+            email_existente = cursor.fetchone()[0] > 0
+            
+            if email_existente:
+                # Si el email ya existe, cerrar el cursor y mostrar un mensaje de error
+                cursor.close()
+                return redirect(url_for('usuarios', error='El email ya existe. Por favor, elige otro.'))
+            else:
+                # Si el email no existe, proceder con la inserción del nuevo usuario en la base de datos
+                cursor.execute("INSERT INTO Usuarios (Nombre, Apellido, Email, Contrasena, IdRol) VALUES (%s, %s, %s, %s, %s)",
+                               (nombre, apellido, email, contrasena, idRol))
+                db.database.commit()
+                cursor.close()
+                return redirect(url_for('usuarios', success='Usuario agregado exitosamente.'))
+        except db.Error as e:
+            db.database.rollback()
+            print("Error al agregar el usuario:", e)
+            return redirect(url_for('usuarios', error='Error al agregar el usuario'))
 
-    return redirect(url_for('usuarios'))
-
-@app.route('/delete_user/<int:id>')
-def delete_user(id):
-    cursor = db.database.cursor()
-    cursor.execute("DELETE FROM Usuarios WHERE IdUsuario=%s", (id,))
-    db.database.commit()
-    cursor.close()
-    return redirect(url_for('usuarios'))
-
+# Editar usuario
 @app.route('/edit_user/<int:id>', methods=['POST'])
 def edit_user(id):
-    nombre = request.form['nombre']
-    apellido = request.form['apellido']
-    contrasena = request.form['contrasena']
-    email = request.form['email']
-    idRol = request.form['idRol']
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        apellido = request.form['apellido']
+        email = request.form['email']
+        contrasena = request.form['contrasena']
+        idRol = request.form['idRol']
 
-    cursor = db.database.cursor()
-    cursor.execute("UPDATE Usuarios SET Nombre=%s, Apellido=%s, Email=%s, Contrasena=%s, IdRol=%s WHERE IdUsuario=%s", (nombre, apellido, email, contrasena, idRol, id))
-    db.database.commit()
-    cursor.close()
+        try:
+            cursor = db.database.cursor()
+            cursor.execute("UPDATE Usuarios SET Nombre = %s, Apellido = %s, Email = %s, Contrasena = %s, IdRol = %s WHERE IdUsuario = %s",
+                           (nombre, apellido, email, contrasena, idRol, id))
+            db.database.commit()
+            cursor.close()
+            return redirect(url_for('usuarios', success='Usuario actualizado exitosamente.'))
+        except db.Error as e:
+            db.database.rollback()
+            print("Error al actualizar el usuario:", e)
+            return redirect(url_for('usuarios', error='Error al actualizar el usuario'))
 
-    return redirect(url_for('usuarios'))
+# Eliminar usuario
+@app.route('/delete_user/<int:id>')
+def delete_user(id):
+    try:
+        cursor = db.database.cursor()
+        cursor.execute("DELETE FROM Usuarios WHERE IdUsuario = %s", (id,))
+        db.database.commit()
+        cursor.close()
+        return redirect(url_for('usuarios', success='Usuario eliminado exitosamente.'))
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al eliminar el usuario:", e)
+        return redirect(url_for('usuarios', error='Error al eliminar el usuario'))
+
 
 #------------------------------------|Manejo de categorias|---------------------------------
 
 @app.route('/categorias')
 def categorias():
+    error = request.args.get('error')
+    success_msg = request.args.get('success_msg')
+    
     cursor = db.database.cursor()
     cursor.execute("SELECT * FROM Categorias")
     categorias = cursor.fetchall()
     cursor.close()
-    return render_template('categorias.html', categorias=categorias)
+    
+    return render_template('categorias.html', categorias=categorias, error=error, success_msg=success_msg)
 
 @app.route('/add_categoria', methods=['POST'])
 def add_categoria():
-    nombre = request.form['nombre']
-
-    cursor = db.database.cursor()
-    cursor.execute("INSERT INTO Categorias (NombreCategoria) VALUES (%s)", (nombre,))
-    db.database.commit()
-    cursor.close()
-
-    return redirect(url_for('categorias'))
-
-@app.route('/delete_categoria/<int:id>')
-def delete_categoria(id):
-    cursor = db.database.cursor()
-    cursor.execute("DELETE FROM Categorias WHERE IdCategoria=%s", (id,))
-    db.database.commit()
-    cursor.close()
-    return redirect(url_for('categorias'))
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        try:
+            # Verificar si la categoría ya existe en la base de datos
+            cursor = db.database.cursor()
+            cursor.execute("SELECT COUNT(*) FROM Categorias WHERE NombreCategoria = %s", (nombre,))
+            categoria_existente = cursor.fetchone()[0] > 0
+            
+            if categoria_existente:
+                # Si la categoría ya existe, cerrar el cursor y mostrar un mensaje de error
+                cursor.close()
+                return redirect(url_for('categorias', error='La categoría ya existe. Por favor, elige otra.'))
+            else:
+                # Si la categoría no existe, proceder con la inserción de la nueva categoría en la base de datos
+                cursor.execute("INSERT INTO Categorias (NombreCategoria) VALUES (%s)", (nombre,))
+                db.database.commit()
+                cursor.close()
+                return redirect(url_for('categorias', success_msg='Categoría agregada exitosamente.'))
+        except db.Error as e:
+            db.database.rollback()
+            print("Error al agregar la categoría:", e)
+            return redirect(url_for('categorias', error='Error al agregar la categoría'))
 
 @app.route('/edit_categoria/<int:id>', methods=['POST'])
 def edit_categoria(id):
-    nombre = request.form['nombre']
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        try:
+            cursor = db.database.cursor()
+            cursor.execute("UPDATE Categorias SET NombreCategoria = %s WHERE IdCategoria = %s", (nombre, id))
+            db.database.commit()
+            cursor.close()
+            return redirect(url_for('categorias', success_msg='Categoría actualizada exitosamente.'))
+        except db.Error as e:
+            db.database.rollback()
+            print("Error al actualizar la categoría:", e)
+            return redirect(url_for('categorias', error='Error al actualizar la categoría'))
 
-    cursor = db.database.cursor()
-    cursor.execute("UPDATE Categorias SET NombreCategoria=%s WHERE IdCategoria=%s", (nombre, id))
-    db.database.commit()
-    cursor.close()
+@app.route('/delete_categoria/<int:id>')
+def delete_categoria(id):
+    try:
+        cursor = db.database.cursor()
+        cursor.execute("DELETE FROM Categorias WHERE IdCategoria = %s", (id,))
+        db.database.commit()
+        cursor.close()
+        return redirect(url_for('categorias', success_msg='Categoría eliminada exitosamente.'))
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al eliminar la categoría:", e)
+        return redirect(url_for('categorias', error='Error al eliminar la categoría'))
 
-    return redirect(url_for('categorias'))
 
 #------------------------------------|Manejo de proveedores|---------------------------------
 
 @app.route('/proveedores')
 def proveedores():
+    
+    error = request.args.get('error')
+    success = request.args.get('success')
+    
     cursor = db.database.cursor()
     cursor.execute("SELECT * FROM Proveedores")
     proveedores = cursor.fetchall()
     cursor.close()
-    return render_template('proveedores.html', proveedores=proveedores)
+    return render_template('proveedores.html', proveedores=proveedores, error=error, success=success)
 
 @app.route('/add_proveedor', methods=['POST'])
 def add_proveedor():
     nombre = request.form['nombre']
     contacto = request.form['contacto']
 
-    cursor = db.database.cursor()
-    cursor.execute("INSERT INTO Proveedores (NombreProveedor, Contacto) VALUES (%s, %s)", (nombre, contacto))
-    db.database.commit()
-    cursor.close()
+    try:
+        # Verificar si el nombre del proveedor ya existe en la base de datos
+        cursor = db.database.cursor()
+        cursor.execute("SELECT COUNT(*) FROM Proveedores WHERE NombreProveedor = %s", (nombre,))
+        nombre_existente = cursor.fetchone()[0] > 0
+        
+        if nombre_existente:
+            # Si el nombre ya existe, mostrar un mensaje de error
+            cursor.close()
+            return redirect(url_for('proveedores', error='El proveedor ya existe. Por favor, elige otro.'))
+        else:
+            # Si el nombre no existe, proceder con la inserción del nuevo proveedor en la base de datos
+            cursor.execute("INSERT INTO Proveedores (NombreProveedor, Contacto) VALUES (%s, %s)", (nombre, contacto))
+            db.database.commit()
+            cursor.close()
+            return redirect(url_for('proveedores', success='Proveedor agregado exitosamente.'))
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al agregar el proveedor:", e)
+        return redirect(url_for('proveedores', error='Error al agregar el proveedor'))
 
-    return redirect(url_for('proveedores'))
-
-@app.route('/delete_proveedor/<int:id>')
-def delete_proveedor(id):
-    cursor = db.database.cursor()
-    cursor.execute("DELETE FROM Proveedores WHERE IdProveedor=%s", (id,))
-    db.database.commit()
-    cursor.close()
-    return redirect(url_for('proveedores'))
-
+# Editar proveedor
 @app.route('/edit_proveedor/<int:id>', methods=['POST'])
 def edit_proveedor(id):
     nombre = request.form['nombre']
     contacto = request.form['contacto']
 
-    cursor = db.database.cursor()
-    cursor.execute("UPDATE Proveedores SET NombreProveedor=%s, Contacto=%s WHERE IdProveedor=%s", (nombre, contacto, id))
-    db.database.commit()
-    cursor.close()
+    try:
+        cursor = db.database.cursor()
+        cursor.execute("UPDATE Proveedores SET NombreProveedor=%s, Contacto=%s WHERE IdProveedor=%s", (nombre, contacto, id))
+        db.database.commit()
+        cursor.close()
+        return redirect(url_for('proveedores', success='Proveedor actualizado exitosamente.'))
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al actualizar el proveedor:", e)
+        return redirect(url_for('proveedores', error='Error al actualizar el proveedor'))
+    
+@app.route('/delete_proveedor/<int:id>')
+def delete_proveedor(id):
+    try:
+        cursor = db.database.cursor()
+        cursor.execute("DELETE FROM Proveedores WHERE IdProveedor=%s", (id,))
+        db.database.commit()
+        cursor.close()
+        return redirect(url_for('proveedores', success='Proveedor eliminado exitosamente.'))
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al eliminar el proveedor:", e)
+        return redirect(url_for('proveedores', error='Error al eliminar el proveedor'))
 
-    return redirect(url_for('proveedores'))
+
 
 #------------------------------------|Manejo de productos|---------------------------------
 
 @app.route('/productos')
 def productos():
+    
+    error = request.args.get('error')
+    success = request.args.get('success')
+    
     cursor = db.database.cursor()
     cursor.execute("SELECT * FROM Productos")
     productos = cursor.fetchall()
@@ -252,7 +363,7 @@ def productos():
     cursor.execute("SELECT IdProveedor, NombreProveedor FROM Proveedores")
     proveedores = cursor.fetchall()
     cursor.close()
-    return render_template('productos.html', productos=productos, categorias=categorias, proveedores=proveedores)
+    return render_template('productos.html', productos=productos, categorias=categorias, proveedores=proveedores, error=error, success=success)
 
 @app.route('/add_producto', methods=['POST'])
 def add_producto():
@@ -263,22 +374,31 @@ def add_producto():
     descripcion = request.form['descripcion']
     stock_minimo = request.form['stock_minimo']
     stock_actual = request.form['stock_actual']
+    
+    try:
+        # Verificar si el nombre del producto ya existe en la base de datos
+        cursor = db.database.cursor()
+        cursor.execute("SELECT COUNT(*) FROM productoss WHERE NombreProducto = %s", (nombre,))
+        nombre_existente = cursor.fetchone()[0] > 0
 
-    cursor = db.database.cursor()
-    cursor.execute("INSERT INTO Productos (NombreProducto, IdCategoria, IdProveedor, PrecioCompra, Descripcion, StockMinimo, StockActual) VALUES (%s, %s, %s, %s, %s, %s, %s)", (nombre, categoria, proveedor, precio_compra, descripcion, stock_minimo, stock_actual))
-    db.database.commit()
-    cursor.close()
+        if nombre_existente:
+            # Si el nombre ya existe, mostrar un mensaje de error
+            cursor.close()
+            return redirect(url_for('productos', error='El producto ya existe. Por favor, elige otro.'))
+        else:
+            # Si el nombre no existe, proceder con la inserción del nuevo proveedor en la base de datos
+            cursor.execute("INSERT INTO Productos (NombreProducto, IdCategoria, IdProveedor, PrecioCompra, Descripcion, StockMinimo, StockActual) VALUES (%s, %s, %s, %s, %s, %s, %s)", (nombre, categoria, proveedor, precio_compra, descripcion, stock_minimo, stock_actual))
+            db.database.commit()
+            cursor.close()
+            return redirect(url_for('productos',  success='Producto agregado exitosamente.'))
+        
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al agregar el producto:", e)
+        return redirect(url_for('productos', error='Error al agregar el producto'))
+    
 
-    return redirect(url_for('productos'))
-
-@app.route('/delete_producto/<int:id>')
-def delete_producto(id):
-    cursor = db.database.cursor()
-    cursor.execute("DELETE FROM Productos WHERE IdProducto=%s", (id,))
-    db.database.commit()
-    cursor.close()
-    return redirect(url_for('productos'))
-
+#Editar producto
 @app.route('/edit_producto/<int:id>', methods=['POST'])
 def edit_producto(id):
     nombre = request.form['nombre']
@@ -287,23 +407,46 @@ def edit_producto(id):
     precio_compra = request.form['precio_compra']
     descripcion = request.form['descripcion']
     stock_minimo = request.form['stock_minimo']
-   
     stock_agregar = request.form['stock_agregar']
+    
+    try:
+        cursor = db.database.cursor()
 
-    cursor = db.database.cursor()
+        # Obtener el stock actual del producto antes de la edición
+        cursor.execute("SELECT StockActual FROM Productos WHERE IdProducto=%s", (id,))
+        stock_actual_anterior = cursor.fetchone()[0]
 
-    # Obtener el stock actual del producto antes de la edición
-    cursor.execute("SELECT StockActual FROM Productos WHERE IdProducto=%s", (id,))
-    stock_actual_anterior = cursor.fetchone()[0]
+        # Calcular el nuevo stock actual sumando la cantidad a agregar
+        nuevo_stock_actual = int(stock_actual_anterior) + int(stock_agregar)
 
-    # Calcular el nuevo stock actual sumando la cantidad a agregar
-    nuevo_stock_actual = int(stock_actual_anterior) + int(stock_agregar)
+        cursor.execute("UPDATE Productos SET NombreProducto=%s, IdCategoria=%s, IdProveedor=%s, PrecioCompra=%s, Descripcion=%s, StockMinimo=%s, StockActual=%s WHERE IdProducto=%s", (nombre, categoria, proveedor, precio_compra, descripcion, stock_minimo, nuevo_stock_actual, id))
+        db.database.commit()
+        cursor.close()
 
-    cursor.execute("UPDATE Productos SET NombreProducto=%s, IdCategoria=%s, IdProveedor=%s, PrecioCompra=%s, Descripcion=%s, StockMinimo=%s, StockActual=%s WHERE IdProducto=%s", (nombre, categoria, proveedor, precio_compra, descripcion, stock_minimo, nuevo_stock_actual, id))
-    db.database.commit()
-    cursor.close()
+        return redirect(url_for('productos', success='Producto actualizado exitosamente'))
+    
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al actualizar el producto:", e)
+        return redirect(url_for('productos', error='Error al actualizar el producto'))
+    
+    #Eliminar producto
+@app.route('/delete_producto/<int:id>')
+def delete_producto(id):
+    
+    try:
+        cursor = db.database.cursor()
+        cursor.execute("DELETE FROM Productos WHERE IdProducto=%s", (id,))
+        db.database.commit()
+        cursor.close()
+        return redirect(url_for('productos', succes='Producto eliminado exitosamente'))
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al actualizar el producto:", e)
+        return redirect(url_for('productos', error='Error al eliminar el producto'))
+        
 
-    return redirect(url_for('productos'))
+  
 
 #------------------------------------|Manejo de procedimientos|---------------------------------
 
@@ -323,9 +466,10 @@ def add_procedimiento():
     descripcion = request.form['descripcion']
     precio_venta = request.form['precio_venta']
     producto_principal = request.form['producto_principal']
+    cantidadProducto = request.form['cantidadProducto']
 
     cursor = db.database.cursor()
-    cursor.execute("INSERT INTO Procedimientos (NombreProcedimiento, Descripcion, PrecioVenta, IdProductoPrincipal) VALUES (%s, %s, %s, %s)", (nombre, descripcion, precio_venta, producto_principal))
+    cursor.execute("INSERT INTO Procedimientos (NombreProcedimiento, Descripcion, PrecioVenta, IdProductoPrincipal, cantidadProducto) VALUES (%s, %s, %s, %s, %s)", (nombre, descripcion, precio_venta, producto_principal, cantidadProducto))
     db.database.commit()
     cursor.close()
 
@@ -337,9 +481,10 @@ def edit_procedimiento(id):
     descripcion = request.form['descripcion']
     precio_venta = request.form['precio_venta']
     producto_principal = request.form['producto_principal']
+    cantidadProducto = request.form['cantidadProducto']
 
     cursor = db.database.cursor()
-    cursor.execute("UPDATE Procedimientos SET NombreProcedimiento=%s, Descripcion=%s, PrecioVenta=%s, IdProductoPrincipal=%s WHERE IdProcedimiento=%s", (nombre, descripcion, precio_venta, producto_principal, id))
+    cursor.execute("UPDATE Procedimientos SET NombreProcedimiento=%s, Descripcion=%s, PrecioVenta=%s, IdProductoPrincipal=%s, cantidadProducto=%s WHERE IdProcedimiento=%s", (nombre, descripcion, precio_venta, producto_principal, cantidadProducto, id))
     db.database.commit()
     cursor.close()
 
@@ -357,11 +502,14 @@ def delete_procedimiento(id):
 
 @app.route('/pacientes')
 def listar_pacientes():
+    error = request.args.get('error')
+    success = request.args.get('success')
+    
     cursor = db.database.cursor()
     cursor.execute("SELECT * FROM Pacientes")
     pacientes = cursor.fetchall()
     cursor.close()
-    return render_template('pacientes.html', pacientes=pacientes)
+    return render_template('pacientes.html', pacientes=pacientes, error=error, success=success)
 
 # Ruta para agregar un paciente
 @app.route('/add_paciente', methods=['POST'])
@@ -371,15 +519,29 @@ def agregar_paciente():
     apellido = request.form['apellido']
     telefono = request.form['telefono']
     correo = request.form['correo']
-
+    
     cursor = db.database.cursor()
-    sql = "INSERT INTO Pacientes (Cedula, Nombre, Apellido, Telefono, Correo) VALUES (%s, %s, %s, %s, %s)"
-    data = (cedula, nombre, apellido, telefono, correo)
-    cursor.execute(sql, data)
-    db.database.commit()
-    cursor.close()
-
-    return redirect(url_for('listar_pacientes'))
+    
+    try:
+        #verificar si la cedula del paciente ya existe en la base de datos
+        cursor = db.database.cursor()
+        cursor.execute("SELECT COUNT(*) FROM Pacientes WHERE Cedula = %s", (cedula,))
+        cedula_existente = cursor.fetchone()[0] > 0
+        
+        if cedula_existente:
+            cursor.close()
+            return redirect(url_for('listar_pacientes', error='Este paciente ya existe. porfavor verifique que el numero de cedula sea el correcto'))
+        else:
+            #Si la cedula no existe, proceder con el registro del paciente
+            sql = "INSERT INTO Pacientes (Cedula, Nombre, Apellido, Telefono, Correo) VALUES (%s, %s, %s, %s, %s)"
+        data = (cedula, nombre, apellido, telefono, correo)
+        cursor.execute(sql, data)
+        db.database.commit()
+        cursor.close()
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al agregar el paciente:", e)
+        return redirect(url_for('listar_pacientes', error='Error al agregar el paciente'))
 
 # Ruta para editar un paciente
 @app.route('/edit_paciente/<int:id>', methods=['POST'])
@@ -390,29 +552,42 @@ def editar_paciente(id):
     telefono = request.form['telefono']
     correo = request.form['correo']
 
-    cursor = db.database.cursor()
-    sql = "UPDATE Pacientes SET Cedula = %s, Nombre = %s, Apellido = %s, Telefono = %s, Correo = %s WHERE cedula = %s"
-    data = (cedula, nombre, apellido, telefono, correo, id)
-    cursor.execute(sql, data)
-    db.database.commit()
-    cursor.close()
+    try:
+        cursor = db.database.cursor()
+        sql = "UPDATE Pacientes SET Cedula = %s, Nombre = %s, Apellido = %s, Telefono = %s, Correo = %s WHERE cedula = %s"
+        data = (cedula, nombre, apellido, telefono, correo, id)
+        cursor.execute(sql, data)
+        db.database.commit()
+        cursor.close()
 
-    return redirect(url_for('listar_pacientes'))
+        return redirect(url_for('listar_pacientes', success='El paciente se actualizo exitosamente'))
+    
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al actualizar el paciente:", e)
+        return redirect(url_for('listar_pacientes', error='Error al actualizar el paciente'))
 
 # Ruta para eliminar un paciente
 @app.route('/delete_paciente/<int:id>')
 def eliminar_paciente(id):
-    cursor = db.database.cursor()
-    sql = "DELETE FROM Pacientes WHERE IdPaciente = %s"
-    data = (id,)
-    cursor.execute(sql, data)
-    db.database.commit()
-    cursor.close()
+    
+    try:
+        cursor = db.database.cursor()
+        sql = "DELETE FROM Pacientes WHERE IdPaciente = %s"
+        data = (id,)
+        cursor.execute(sql, data)
+        db.database.commit()
+        cursor.close()
 
-    return redirect(url_for('listar_pacientes'))
+        return redirect(url_for('listar_pacientes'))
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al eliminar el paciente")
+        return redirect(url_for('listar_pacientes', error='Error al eliminar el paciente'))
+    
+    
 
 #------------------------------------|Manejo de ingresos|---------------------------------
-
 
 @app.route('/ingresoAdmin')
 def ingresos():
@@ -443,17 +618,27 @@ def add_ingreso():
     concepto = request.form['concepto']
 
     cursor = db.database.cursor()
+
+    # Insertar el ingreso en la tabla Ingresos
     cursor.execute("INSERT INTO Ingresos (Cedula, IdProcedimiento, Fecha, MontoTotal, IdMetodoPago, IdMoneda, Descuento, Observaciones) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (cedula, procedimiento, fecha, monto_total, metodo_pago, moneda, descuento, observaciones))
     db.database.commit()  # Confirmar la transacción antes de obtener el ID
     ingreso_id = cursor.lastrowid  # Obtener el ID del ingreso recién insertado
+    
     # Insertar en la tabla Caja
     cursor.execute("INSERT INTO Caja (Fecha, TipoMovimiento, IdIngreso, Concepto, Monto, IdMetodoPago, IdMoneda, Observaciones) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (fecha, 'Ingreso', ingreso_id, concepto, monto_total, metodo_pago, moneda, observaciones))
+    
+    # Obtener la cantidad de producto utilizado en el procedimiento
+    cursor.execute("SELECT IdProductoPrincipal, cantidadProducto FROM Procedimientos WHERE IdProcedimiento = %s", (procedimiento,))
+    producto_info = cursor.fetchone()
+    producto_id, cantidad_producto = producto_info[0], producto_info[1]
+    
+    # Actualizar el stock actual en la tabla Productos
+    cursor.execute("UPDATE Productos SET StockActual = StockActual - %s WHERE IdProducto = %s", (cantidad_producto, producto_id))
     
     db.database.commit()
     cursor.close()
 
     return redirect(url_for('ingresos'))
-
 @app.route('/edit_ingreso/<int:id>', methods=['POST'])
 def edit_ingreso(id):
     cedula = request.form['cedula']
