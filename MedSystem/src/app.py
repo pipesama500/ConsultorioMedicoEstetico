@@ -3,7 +3,7 @@ import os
 import conexionBD as db
 
 template_dir = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-template_dir = os.path.join(template_dir, 'src', 'templates', 'Admin' )
+template_dir = os.path.join(template_dir, 'src', 'templates', 'Admin')
 
 app = Flask(__name__, template_folder=template_dir)
 
@@ -32,8 +32,7 @@ def login():
             if id_rol == 1:  # Administrador
                 return redirect(url_for('adminInicio'))
             elif id_rol == 2:  # Trabajador
-                # Aquí puedes agregar la lógica para redirigir al trabajador a su vista correspondiente
-                pass
+                return redirect(url_for('trabajadorInicio'))
         else:
             # Credenciales inválidas
             return render_template('login.html', error='Credenciales inválidas')
@@ -48,6 +47,13 @@ def adminInicio():
 def admin_inicio():
     return redirect(url_for('adminInicio'))
 
+@app.route('/trabajadorInicio')
+def trabajadorInicio():
+    return render_template('trabajadorInicio.html')
+
+@app.route('/trabajadorInicio.html')
+def trabajador_inicio():
+    return redirect(url_for('trabajadorInicio'))
 
 #------------------------------|Manejo de Roles|------------------------------
 
@@ -58,8 +64,6 @@ def roles():
     roles = cursor.fetchall()
     cursor.close()
     return render_template('roles.html', roles=roles)
-
-
 
 @app.route('/add_role', methods=['POST'])
 def add_role():
@@ -703,8 +707,6 @@ def delete_movimiento_caja(id):
     db.database.commit()
     cursor.close()
     return redirect(url_for('caja'))
-
-
 
 if __name__ == '__main__':
     app.run(debug=True, port=4500)
