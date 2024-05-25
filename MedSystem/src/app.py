@@ -3,7 +3,7 @@ import os
 import conexionBD as db
 
 template_dir = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-template_dir = os.path.join(template_dir, 'src', 'templates', 'Admin')
+template_dir = os.path.join(template_dir, 'src', 'templates')
 
 app = Flask(__name__, template_folder=template_dir)
 
@@ -54,6 +54,32 @@ def trabajadorInicio():
 @app.route('/trabajadorInicio.html')
 def trabajador_inicio():
     return redirect(url_for('trabajadorInicio'))
+
+@app.route('/trabajadoregresos')
+def trabajadoregresos():
+    cursor = db.database.cursor()
+    cursor.execute("SELECT e.IdEgreso, e.Concepto, e.Monto, e.Fecha, e.Observaciones, mp.NombreMetodo, m.NombreMoneda FROM Egresos e JOIN MetodosPago mp ON e.IdMetodoPago = mp.IdMetodoPago JOIN Monedas m ON e.IdMoneda = m.IdMoneda")
+    egresos = cursor.fetchall()
+    cursor.execute("SELECT * FROM MetodosPago")
+    metodos_pago = cursor.fetchall()
+    cursor.execute("SELECT * FROM Monedas")
+    monedas = cursor.fetchall()
+    cursor.close()
+    return render_template('trabajadoregresos.html', egresos=egresos, metodos_pago=metodos_pago, monedas=monedas )
+
+@app.route('/trabajadorpacientes')
+def trabajadorpacientes():
+    return render_template('trabajadorpacientes.html')
+
+@app.route('/trabajadoingresos')
+def trabajadoingresos():
+    return render_template('trabajadoingresos.html')
+
+@app.route('/trabajadorcaja.html')
+def trabajadorcaja():
+    return redirect(url_for('trabajadorcaja'))
+
+
 
 #------------------------------|Manejo de Roles|------------------------------
 
