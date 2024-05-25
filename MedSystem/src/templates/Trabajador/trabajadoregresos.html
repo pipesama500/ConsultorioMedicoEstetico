@@ -75,7 +75,6 @@
                             <td>{{ egreso[4] }}</td>
                             <td>
                                 <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal{{ egreso[0] }}">Editar</a>
-                                <a href="/delete_egreso/{{ egreso[0] }}" class="btn btn-danger btn-sm">Eliminar</a>
                             </td>
                         </tr>
                         <!-- Modal de Edición -->
@@ -131,7 +130,7 @@
                 </table>
             </div>
             <div class="card-footer">
-                <a href="/adminInicio.html" class="btn btn-primary">Volver a Inicio</a>
+                <a href="/trabajadorInicio.html" class="btn btn-primary">Volver a Inicio</a>
                 <a href="{{ url_for('ingresos') }}" class="btn btn-primary">Ir a Ingresos</a>
                 <a href="{{ url_for('caja') }}" class="btn btn-primary">Ir a Caja</a>
             </div>

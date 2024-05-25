@@ -366,7 +366,15 @@ def listar_pacientes():
     pacientes = cursor.fetchall()
     cursor.close()
     return render_template('pacientes.html', pacientes=pacientes)
-
+"""
+@app.route('/trabajadorpacientes')
+def listar_pacientes():
+    cursor = db.database.cursor()
+    cursor.execute("SELECT * FROM Pacientes")
+    pacientes = cursor.fetchall()
+    cursor.close()
+    return render_template('pacientes.html', pacientes=pacientes)
+"""
 # Ruta para agregar un paciente
 @app.route('/add_paciente', methods=['POST'])
 def agregar_paciente():
@@ -433,6 +441,23 @@ def ingresos():
     monedas = cursor.fetchall()
     cursor.close()
     return render_template('ingresoAdmin.html', ingresos=ingresos, pacientes=pacientes, procedimientos=procedimientos, metodos_pago=metodos_pago, monedas=monedas)
+"""
+@app.route('/trabajadoringresos')
+def ingresos():
+    cursor = db.database.cursor()
+    cursor.execute("SELECT i.IdIngreso, i.Cedula, i.IdProcedimiento, i.Fecha, i.MontoTotal, i.Observaciones, i.Descuento, i.IdMetodoPago, i.IdMoneda, p.Nombre, p.Apellido, pr.NombreProcedimiento, mp.NombreMetodo, m.NombreMoneda FROM Ingresos i JOIN Pacientes p ON i.Cedula = p.Cedula JOIN Procedimientos pr ON i.IdProcedimiento = pr.IdProcedimiento JOIN MetodosPago mp ON i.IdMetodoPago = mp.IdMetodoPago JOIN Monedas m ON i.IdMoneda = m.IdMoneda")
+    ingresos = cursor.fetchall()
+    cursor.execute("SELECT * FROM Pacientes")
+    pacientes = cursor.fetchall()
+    cursor.execute("SELECT * FROM Procedimientos")
+    procedimientos = cursor.fetchall()
+    cursor.execute("SELECT * FROM MetodosPago")
+    metodos_pago = cursor.fetchall()
+    cursor.execute("SELECT * FROM Monedas")
+    monedas = cursor.fetchall()
+    cursor.close()
+    return render_template('ingresoAdmin.html', ingresos=ingresos, pacientes=pacientes, procedimientos=procedimientos, metodos_pago=metodos_pago, monedas=monedas)
+"""
 
 @app.route('/add_ingreso', methods=['POST'])
 def add_ingreso():
@@ -520,7 +545,19 @@ def egresos():
     monedas = cursor.fetchall()
     cursor.close()
     return render_template('egresos.html', egresos=egresos, metodos_pago=metodos_pago, monedas=monedas)
-
+"""
+@app.route('/trabajadoregresos')
+def t_egresos():
+    cursor = db.database.cursor()
+    cursor.execute("SELECT e.IdEgreso, e.Concepto, e.Monto, e.Fecha, e.Observaciones, mp.NombreMetodo, m.NombreMoneda FROM Egresos e JOIN MetodosPago mp ON e.IdMetodoPago = mp.IdMetodoPago JOIN Monedas m ON e.IdMoneda = m.IdMoneda")
+    egresos = cursor.fetchall()
+    cursor.execute("SELECT * FROM MetodosPago")
+    metodos_pago = cursor.fetchall()
+    cursor.execute("SELECT * FROM Monedas")
+    monedas = cursor.fetchall()
+    cursor.close()
+    return render_template('egresos.html', egresos=egresos, metodos_pago=metodos_pago, monedas=monedas)
+"""
 @app.route('/add_egreso', methods=['POST'])
 def add_egreso():
     concepto = request.form['concepto']
@@ -682,7 +719,15 @@ def caja():
     movimientos_caja = cursor.fetchall()
     cursor.close()
     return render_template('caja.html', movimientos_caja=movimientos_caja)
-
+"""
+@app.route('/trabajadorcaja')
+def caja():
+    cursor = db.database.cursor()
+    cursor.execute("SELECT * FROM Caja")
+    movimientos_caja = cursor.fetchall()
+    cursor.close()
+    return render_template('caja.html', movimientos_caja=movimientos_caja)
+"""
 @app.route('/edit_movimiento_caja/<int:id>', methods=['POST'])
 def edit_movimiento_caja(id):
     fecha = request.form['fecha']
