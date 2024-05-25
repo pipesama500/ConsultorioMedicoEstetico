@@ -86,7 +86,7 @@
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
-                                        <form action="/edit_egreso/{{ egreso[0] }}" method="POST">
+                                        <form action="/trabajador_edit_egreso/{{ egreso[0] }}" method="POST">
                                             <div class="mb-3">
                                                 <label for="concepto" class="form-label">Concepto</label>
                                                 <input type="text" class="form-control" id="concepto" name="concepto" value="{{ egreso[1] }}">
@@ -131,8 +131,8 @@
             </div>
             <div class="card-footer">
                 <a href="/trabajadorInicio.html" class="btn btn-primary">Volver a Inicio</a>
-                <a href="{{ url_for('ingresos') }}" class="btn btn-primary">Ir a Ingresos</a>
-                <a href="{{ url_for('caja') }}" class="btn btn-primary">Ir a Caja</a>
+                <a href="{{ url_for('trabajadoringresos') }}" class="btn btn-primary">Ir a Ingresos</a>
+                <a href="{{ url_for('trabajadorcaja') }}" class="btn btn-primary">Ir a Caja</a>
             </div>
         </div>
         <div class="card mt-5">
@@ -140,7 +140,7 @@
                 <h2>Agregar Egreso</h2>
             </div>
             <div class="card-body">
-                <form action="/add_egreso" method="POST">
+                <form action="/trabajador_add_egreso" method="POST">
                     <div class="mb-3">
                         <label for="concepto" class="form-label">Concepto</label>
                         <input type="text" class="form-control" id="concepto" name="concepto">

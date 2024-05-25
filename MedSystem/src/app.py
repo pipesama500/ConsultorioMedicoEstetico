@@ -55,6 +55,8 @@ def trabajadorInicio():
 def trabajador_inicio():
     return redirect(url_for('trabajadorInicio'))
 
+#------------------------------------|Vistas permitidas del trabajador|---------------------------------
+
 @app.route('/trabajadoregresos')
 def trabajadoregresos():
     cursor = db.database.cursor()
@@ -69,15 +71,161 @@ def trabajadoregresos():
 
 @app.route('/trabajadorpacientes')
 def trabajadorpacientes():
-    return render_template('trabajadorpacientes.html')
+    cursor = db.database.cursor()
+    cursor.execute("SELECT * FROM Pacientes")
+    pacientes = cursor.fetchall()
+    cursor.close()
+    return render_template('trabajadorpacientes.html', pacientes=pacientes)
 
-@app.route('/trabajadoingresos')
-def trabajadoingresos():
-    return render_template('trabajadoingresos.html')
+@app.route('/trabajadoringresos')
+def trabajadoringresos():
+    cursor = db.database.cursor()
+    cursor.execute("SELECT i.IdIngreso, i.Cedula, i.IdProcedimiento, i.Fecha, i.MontoTotal, i.Observaciones, i.Descuento, i.IdMetodoPago, i.IdMoneda, p.Nombre, p.Apellido, pr.NombreProcedimiento, mp.NombreMetodo, m.NombreMoneda FROM Ingresos i JOIN Pacientes p ON i.Cedula = p.Cedula JOIN Procedimientos pr ON i.IdProcedimiento = pr.IdProcedimiento JOIN MetodosPago mp ON i.IdMetodoPago = mp.IdMetodoPago JOIN Monedas m ON i.IdMoneda = m.IdMoneda")
+    ingresos = cursor.fetchall()
+    cursor.execute("SELECT * FROM Pacientes")
+    pacientes = cursor.fetchall()
+    cursor.execute("SELECT * FROM Procedimientos")
+    procedimientos = cursor.fetchall()
+    cursor.execute("SELECT * FROM MetodosPago")
+    metodos_pago = cursor.fetchall()
+    cursor.execute("SELECT * FROM Monedas")
+    monedas = cursor.fetchall()
+    cursor.close()
+    return render_template('trabajadoringresos.html', ingresos=ingresos, pacientes=pacientes, procedimientos=procedimientos, metodos_pago=metodos_pago, monedas=monedas)
 
-@app.route('/trabajadorcaja.html')
+@app.route('/trabajadorcaja')
 def trabajadorcaja():
-    return redirect(url_for('trabajadorcaja'))
+    cursor = db.database.cursor()
+    cursor.execute("SELECT * FROM Caja")
+    movimientos_caja = cursor.fetchall()
+    cursor.close()
+    return render_template('trabajadorcaja.html', movimientos_caja=movimientos_caja)
+
+#------------------------------------|Acciones permitidas del trabajador|---------------------------------
+
+@app.route('/trabajador_edit_paciente/<int:id>', methods=['POST'])
+def trabajador_editar_paciente(id):
+    cedula = request.form['cedula']
+    nombre = request.form['nombre']
+    apellido = request.form['apellido']
+    telefono = request.form['telefono']
+    correo = request.form['correo']
+
+    cursor = db.database.cursor()
+    sql = "UPDATE Pacientes SET Cedula = %s, Nombre = %s, Apellido = %s, Telefono = %s, Correo = %s WHERE cedula = %s"
+    data = (cedula, nombre, apellido, telefono, correo, id)
+    cursor.execute(sql, data)
+    db.database.commit()
+    cursor.close()
+
+    return redirect(url_for('trabajadorpacientes'))
+
+@app.route('/trabajador_add_paciente', methods=['POST'])
+def trabajador_agregar_paciente():
+    cedula = request.form['cedula']
+    nombre = request.form['nombre']
+    apellido = request.form['apellido']
+    telefono = request.form['telefono']
+    correo = request.form['correo']
+
+    cursor = db.database.cursor()
+    sql = "INSERT INTO Pacientes (Cedula, Nombre, Apellido, Telefono, Correo) VALUES (%s, %s, %s, %s, %s)"
+    data = (cedula, nombre, apellido, telefono, correo)
+    cursor.execute(sql, data)
+    db.database.commit()
+    cursor.close()
+
+    return redirect(url_for('trabajadorpacientes'))
+
+@app.route('/trabajador_edit_ingreso/<int:id>', methods=['POST'])
+def trabajador_edit_ingreso(id):
+    cedula = request.form['cedula']
+    procedimiento = request.form['procedimiento1']
+    fecha = request.form['fecha']
+    monto_total = request.form['monto_total1']
+    metodo_pago = request.form['metodo_pago']
+    moneda = request.form['moneda']
+    descuento = request.form['descuento1']
+    observaciones = request.form['observaciones']
+    concepto = request.form['concepto1']
+
+    cursor = db.database.cursor()
+    cursor.execute("UPDATE Ingresos SET Cedula=%s, IdProcedimiento=%s, Fecha=%s, MontoTotal=%s, IdMetodoPago=%s, IdMoneda=%s, Descuento=%s, Observaciones=%s WHERE IdIngreso=%s", (cedula, procedimiento, fecha, monto_total, metodo_pago, moneda, descuento, observaciones, id))
+    db.database.commit()
+    
+    # Actualizar el registro correspondiente en la tabla Caja
+    cursor.execute("UPDATE Caja SET Fecha=%s, Concepto=%s, Monto=%s, IdMetodoPago=%s, IdMoneda=%s, Observaciones=%s WHERE IdIngreso=%s", (fecha, concepto, monto_total, metodo_pago, moneda, observaciones, id))
+    db.database.commit()
+    
+    cursor.close()
+
+    return redirect(url_for('trabajadoringresos'))
+
+@app.route('/trabajador_add_ingreso', methods=['POST'])
+def trabajador_add_ingreso():
+    cedula = request.form['cedula']
+    procedimiento = request.form['procedimiento']
+    fecha = request.form['fecha']
+    monto_total = request.form['monto_total']
+    metodo_pago = request.form['metodo_pago']
+    moneda = request.form['moneda']
+    descuento = request.form['descuento']
+    observaciones = request.form['observaciones']
+    concepto = request.form['concepto']
+
+    cursor = db.database.cursor()
+    cursor.execute("INSERT INTO Ingresos (Cedula, IdProcedimiento, Fecha, MontoTotal, IdMetodoPago, IdMoneda, Descuento, Observaciones) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (cedula, procedimiento, fecha, monto_total, metodo_pago, moneda, descuento, observaciones))
+    db.database.commit()  # Confirmar la transacción antes de obtener el ID
+    ingreso_id = cursor.lastrowid  # Obtener el ID del ingreso recién insertado
+    # Insertar en la tabla Caja
+    cursor.execute("INSERT INTO Caja (Fecha, TipoMovimiento, IdIngreso, Concepto, Monto, IdMetodoPago, IdMoneda, Observaciones) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (fecha, 'Ingreso', ingreso_id, concepto, monto_total, metodo_pago, moneda, observaciones))
+    
+    db.database.commit()
+    cursor.close()
+
+    return redirect(url_for('trabajadoringresos'))
+
+@app.route('/trabajador_edit_egreso/<int:id>', methods=['POST'])
+def trabajador_edit_egreso(id):
+    concepto = request.form['concepto']
+    monto = request.form['monto']
+    fecha = request.form['fecha']
+    metodo_pago = request.form['metodo_pago']
+    moneda = request.form['moneda']
+    observaciones = request.form['observaciones']
+
+    cursor = db.database.cursor()
+    cursor.execute("UPDATE Egresos SET Concepto=%s, Monto=%s, Fecha=%s, IdMetodoPago=%s, IdMoneda=%s, Observaciones=%s WHERE IdEgreso=%s", (concepto, monto, fecha, metodo_pago, moneda, observaciones, id))
+    db.database.commit()
+
+    # Actualizar el registro correspondiente en la tabla Caja
+    cursor.execute("UPDATE Caja SET Fecha=%s, Concepto=%s, Monto=%s, IdMetodoPago=%s, IdMoneda=%s, Observaciones=%s WHERE IdEgreso=%s", (fecha, concepto, monto, metodo_pago, moneda, observaciones, id))
+    db.database.commit()
+
+    cursor.close()
+
+    return redirect(url_for('trabajadoregresos'))
+
+@app.route('/trabajador_add_egreso', methods=['POST'])
+def trabajador_add_egreso():
+    concepto = request.form['concepto']
+    monto = request.form['monto']
+    fecha = request.form['fecha']
+    metodo_pago = request.form['metodo_pago']
+    moneda = request.form['moneda']
+    observaciones = request.form['observaciones']
+
+    cursor = db.database.cursor()
+    cursor.execute("INSERT INTO Egresos (Concepto, Monto, Fecha, IdMetodoPago, IdMoneda, Observaciones) VALUES (%s, %s, %s, %s, %s, %s)", (concepto, monto, fecha, metodo_pago, moneda, observaciones))
+    db.database.commit()  # Confirmar la transacción antes de obtener el ID
+    egreso_id = cursor.lastrowid  # Obtener el ID del egreso recién insertado
+    # Insertar en la tabla Caja
+    cursor.execute("INSERT INTO Caja (Fecha, TipoMovimiento, IdEgreso, Concepto, Monto, IdMetodoPago, IdMoneda, Observaciones) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (fecha, 'Egreso', egreso_id, concepto, monto, metodo_pago, moneda, observaciones))
+    
+    db.database.commit()
+    cursor.close()
+
+    return redirect(url_for('trabajadoregresos'))
 
 
 
@@ -392,15 +540,7 @@ def listar_pacientes():
     pacientes = cursor.fetchall()
     cursor.close()
     return render_template('pacientes.html', pacientes=pacientes)
-"""
-@app.route('/trabajadorpacientes')
-def listar_pacientes():
-    cursor = db.database.cursor()
-    cursor.execute("SELECT * FROM Pacientes")
-    pacientes = cursor.fetchall()
-    cursor.close()
-    return render_template('pacientes.html', pacientes=pacientes)
-"""
+
 # Ruta para agregar un paciente
 @app.route('/add_paciente', methods=['POST'])
 def agregar_paciente():
@@ -467,23 +607,6 @@ def ingresos():
     monedas = cursor.fetchall()
     cursor.close()
     return render_template('ingresoAdmin.html', ingresos=ingresos, pacientes=pacientes, procedimientos=procedimientos, metodos_pago=metodos_pago, monedas=monedas)
-"""
-@app.route('/trabajadoringresos')
-def ingresos():
-    cursor = db.database.cursor()
-    cursor.execute("SELECT i.IdIngreso, i.Cedula, i.IdProcedimiento, i.Fecha, i.MontoTotal, i.Observaciones, i.Descuento, i.IdMetodoPago, i.IdMoneda, p.Nombre, p.Apellido, pr.NombreProcedimiento, mp.NombreMetodo, m.NombreMoneda FROM Ingresos i JOIN Pacientes p ON i.Cedula = p.Cedula JOIN Procedimientos pr ON i.IdProcedimiento = pr.IdProcedimiento JOIN MetodosPago mp ON i.IdMetodoPago = mp.IdMetodoPago JOIN Monedas m ON i.IdMoneda = m.IdMoneda")
-    ingresos = cursor.fetchall()
-    cursor.execute("SELECT * FROM Pacientes")
-    pacientes = cursor.fetchall()
-    cursor.execute("SELECT * FROM Procedimientos")
-    procedimientos = cursor.fetchall()
-    cursor.execute("SELECT * FROM MetodosPago")
-    metodos_pago = cursor.fetchall()
-    cursor.execute("SELECT * FROM Monedas")
-    monedas = cursor.fetchall()
-    cursor.close()
-    return render_template('ingresoAdmin.html', ingresos=ingresos, pacientes=pacientes, procedimientos=procedimientos, metodos_pago=metodos_pago, monedas=monedas)
-"""
 
 @app.route('/add_ingreso', methods=['POST'])
 def add_ingreso():
@@ -571,19 +694,7 @@ def egresos():
     monedas = cursor.fetchall()
     cursor.close()
     return render_template('egresos.html', egresos=egresos, metodos_pago=metodos_pago, monedas=monedas)
-"""
-@app.route('/trabajadoregresos')
-def t_egresos():
-    cursor = db.database.cursor()
-    cursor.execute("SELECT e.IdEgreso, e.Concepto, e.Monto, e.Fecha, e.Observaciones, mp.NombreMetodo, m.NombreMoneda FROM Egresos e JOIN MetodosPago mp ON e.IdMetodoPago = mp.IdMetodoPago JOIN Monedas m ON e.IdMoneda = m.IdMoneda")
-    egresos = cursor.fetchall()
-    cursor.execute("SELECT * FROM MetodosPago")
-    metodos_pago = cursor.fetchall()
-    cursor.execute("SELECT * FROM Monedas")
-    monedas = cursor.fetchall()
-    cursor.close()
-    return render_template('egresos.html', egresos=egresos, metodos_pago=metodos_pago, monedas=monedas)
-"""
+
 @app.route('/add_egreso', methods=['POST'])
 def add_egreso():
     concepto = request.form['concepto']
@@ -745,15 +856,7 @@ def caja():
     movimientos_caja = cursor.fetchall()
     cursor.close()
     return render_template('caja.html', movimientos_caja=movimientos_caja)
-"""
-@app.route('/trabajadorcaja')
-def caja():
-    cursor = db.database.cursor()
-    cursor.execute("SELECT * FROM Caja")
-    movimientos_caja = cursor.fetchall()
-    cursor.close()
-    return render_template('caja.html', movimientos_caja=movimientos_caja)
-"""
+
 @app.route('/edit_movimiento_caja/<int:id>', methods=['POST'])
 def edit_movimiento_caja(id):
     fecha = request.form['fecha']
