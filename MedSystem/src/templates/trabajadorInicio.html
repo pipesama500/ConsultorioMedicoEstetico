@@ -8,14 +8,14 @@
     <style>
         body {
             background-color: #E8D5BE;
-            color: #333;
+            color: #E8D5BE;
         }
         .card {
             background-color: #E8D5BE;
             border: 1px solid #825F38;
         }
         .card-header {
-            background-color: #825F38;
+            background-color: #3B2E20;
             color: #FFFFFF;
         }
         .btn-primary {
@@ -26,6 +26,27 @@
             background-color: #64482F;
             border-color: #64482F;
         }
+        .btn-danger {
+            background-color: #C12E2A;
+            border-color: #C12E2A;
+        }
+        .btn-danger:hover {
+            background-color: #A02420;
+            border-color: #A02420;
+        }   
+
+       
+        .image-link {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            margin: 10px;
+        }
+        .image-link img {
+            width: 100px; /* Ajusta el tamaño de la imagen según tus necesidades */
+            height: 100px; /* Ajusta el tamaño de la imagen según tus necesidades */
+        }
+
     </style>
 </head>
 <body>
@@ -41,8 +62,10 @@
                             <div class="col-md-4">
                                 <a href="{{ url_for('trabajadorcaja') }}" class="btn btn-primary btn-block mb-3">Caja</a>
                                 <a href="{{ url_for('trabajadoregresos') }}" class="btn btn-primary btn-block mb-3">Egresos</a>
-                                <a href="{{ url_for('trabajadorpacientes') }}" class="btn btn-primary btn-block mb-3">Pacientes</a>
+                            </div>
+                            <div class="col-md-4">
                                 <a href="{{ url_for('trabajadoringresos') }}" class="btn btn-primary btn-block mb-3">Ingresos</a>
+                                <a href="{{ url_for('trabajadorpacientes') }}" class="btn btn-primary btn-block mb-3">Pacientes</a>
                             </div>
                         </div>
                     </div>
@@ -50,6 +73,14 @@
             </div>
         </div>
     </div>
+
+    <!-- Imagen con enlace a login.html -->
+    <div class="image-link">
+        <a href="{{ url_for('login') }}">
+            <img src="https://media.discordapp.net/attachments/1166577354815049758/1244161316617453588/Imagen_de_WhatsApp_2024-05-24_a_las_19.36.54_db9cd9eb_1.png?ex=66541b05&is=6652c985&hm=fb85989dc4d308992a58a18d5ae01b71e5a249724a98c323a4025af33cf3303e&=&format=webp&quality=lossless&width=630&height=630" alt="Login">
+        </a>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>

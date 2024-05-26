@@ -59,7 +59,7 @@
         </div>
         {% endif %}
 
-        <!-- Agregarr Ingreso Modal -->
+        <!-- Agregarr Ingreso Modall -->
         <div class="modal fade" id="addIngresoModal" tabindex="-1" aria-labelledby="addIngresoModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -136,6 +136,10 @@
                 <h2>Listado de Ingresos</h2>
             </div>
             <div class="card-body">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addIngresoModal">
+                    Agregar Ingreso
+                </button>
+                <div class="mt-3"></div>
                 <table class="table table-bordered">
                     <thead>
                         <tr>
@@ -250,12 +254,10 @@
                 </table>
             </div>
             <div class="card-footer">
-                <a href="{{ url_for('trabajadorInicio') }}" class="btn btn-primary">Volver a Inicio</a>
                 <a href="{{ url_for('trabajadoregresos') }}" class="btn btn-primary">Ir a Egresos</a>
                 <a href="{{ url_for('trabajadorcaja') }}" class="btn btn-primary">Ir a Caja</a>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addIngresoModal">
-                    Agregar Ingreso
-                </button>
+                <div class="mt-3"></div>
+                <a href="{{ url_for('trabajadorInicio') }}" class="btn btn-primary">Volver a Inicio</a>              
             </div>
         </div>
     </div>
