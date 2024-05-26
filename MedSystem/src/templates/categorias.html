@@ -48,14 +48,16 @@
         <div class="card shadow">
             <div class="card-body">
                 {% if error %}
-                    <div class="alert alert-danger" role="alert">
-                        {{ error }}
-                    </div>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ error }} 
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
                 {% endif %}
-                {% if success_msg %}
-                    <div class="alert alert-success" role="alert">
-                        {{ success_msg }}
-                    </div>
+                {% if success %}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ success }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
                 {% endif %}
                 <!-- Botón para abrir el modal de agregar categoría -->
                 <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addModal">Agregar Categoría</button>
