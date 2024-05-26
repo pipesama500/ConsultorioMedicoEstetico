@@ -1,9 +1,12 @@
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, render_template, redirect, url_for, request, make_response
 import os
 import conexionBD as db
+import pdfkit
+
+config = pdfkit.configuration(wkhtmltopdf=r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe')
 
 template_dir = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-template_dir = os.path.join(template_dir, 'src', 'templates' )
+template_dir = os.path.join(template_dir, 'src', 'templates')
 
 app = Flask(__name__, template_folder=template_dir)
 
@@ -32,8 +35,7 @@ def login():
             if id_rol == 1:  # Administrador
                 return redirect(url_for('adminInicio'))
             elif id_rol == 2:  # Trabajador
-                # Aquí puedes agregar la lógica para redirigir al trabajador a su vista correspondiente
-                pass
+                return redirect(url_for('trabajadorInicio'))
         else:
             # Credenciales inválidas
             return render_template('login.html', error='Credenciales inválidas')
@@ -48,8 +50,267 @@ def adminInicio():
 def admin_inicio():
     return redirect(url_for('adminInicio'))
 
+@app.route('/trabajadorInicio')
+def trabajadorInicio():
+    return render_template('trabajadorInicio.html')
 
-#------------------------------|Manejo de Roles|------------------------------
+@app.route('/trabajadorInicio.html')
+def trabajador_inicio():
+    return redirect(url_for('trabajadorInicio'))
+
+#------------------------------------|Vistas permitidas del trabajador|---------------------------------
+
+@app.route('/trabajadoregresos')
+def trabajadoregresos():
+    error = request.args.get('error')
+    success = request.args.get('success')
+    
+    cursor = db.database.cursor()
+    cursor.execute("SELECT e.IdEgreso, e.Concepto, e.Monto, e.Fecha, e.Observaciones, mp.NombreMetodo, m.NombreMoneda FROM Egresos e JOIN MetodosPago mp ON e.IdMetodoPago = mp.IdMetodoPago JOIN Monedas m ON e.IdMoneda = m.IdMoneda")
+    egresos = cursor.fetchall()
+    cursor.execute("SELECT * FROM MetodosPago")
+    metodos_pago = cursor.fetchall()
+    cursor.execute("SELECT * FROM Monedas")
+    monedas = cursor.fetchall()
+    cursor.close()
+    return render_template('trabajadoregresos.html', egresos=egresos, metodos_pago=metodos_pago, monedas=monedas, error=error, success=success)
+
+@app.route('/trabajadorpacientes')
+def trabajadorpacientes():
+    error = request.args.get('error')
+    success = request.args.get('success')
+    
+    cursor = db.database.cursor()
+    cursor.execute("SELECT * FROM Pacientes")
+    pacientes = cursor.fetchall()
+    cursor.close()
+    return render_template('trabajadorpacientes.html', pacientes=pacientes, error=error, success=success)
+
+
+@app.route('/trabajadoringresos')
+def trabajadoringresos():
+    error = request.args.get('error')
+    success = request.args.get('success')
+    
+    cursor = db.database.cursor()
+    cursor.execute("SELECT i.IdIngreso, i.Cedula, i.IdProcedimiento, i.Fecha, i.MontoTotal, i.Observaciones, i.Descuento, i.IdMetodoPago, i.IdMoneda, p.Nombre, p.Apellido, pr.NombreProcedimiento, mp.NombreMetodo, m.NombreMoneda FROM Ingresos i JOIN Pacientes p ON i.Cedula = p.Cedula JOIN Procedimientos pr ON i.IdProcedimiento = pr.IdProcedimiento JOIN MetodosPago mp ON i.IdMetodoPago = mp.IdMetodoPago JOIN Monedas m ON i.IdMoneda = m.IdMoneda")
+    ingresos = cursor.fetchall()
+    cursor.execute("SELECT * FROM Pacientes")
+    pacientes = cursor.fetchall()
+    cursor.execute("SELECT * FROM Procedimientos")
+    procedimientos = cursor.fetchall()
+    cursor.execute("SELECT * FROM MetodosPago")
+    metodos_pago = cursor.fetchall()
+    cursor.execute("SELECT * FROM Monedas")
+    monedas = cursor.fetchall()
+    cursor.close()
+    return render_template('trabajadoringresos.html', ingresos=ingresos, pacientes=pacientes, procedimientos=procedimientos, metodos_pago=metodos_pago, monedas=monedas, error=error, success=success)
+
+@app.route('/trabajadorcaja')
+def trabajadorcaja():
+    cursor = db.database.cursor()
+    cursor.execute("SELECT * FROM Caja")
+    movimientos_caja = cursor.fetchall()
+    cursor.close()
+    return render_template('trabajadorcaja.html', movimientos_caja=movimientos_caja)
+
+#------------------------------------|Acciones permitidas del trabajador|---------------------------------
+
+@app.route('/trabajador_edit_paciente/<int:id>', methods=['POST'])
+def trabajador_editar_paciente(id):
+    cedula = request.form['cedula']
+    nombre = request.form['nombre']
+    apellido = request.form['apellido']
+    telefono = request.form['telefono']
+    correo = request.form['correo']
+
+    try:
+        cursor = db.database.cursor()
+        sql = "UPDATE Pacientes SET Cedula = %s, Nombre = %s, Apellido = %s, Telefono = %s, Correo = %s WHERE cedula = %s"
+        data = (cedula, nombre, apellido, telefono, correo, id)
+        cursor.execute(sql, data)
+        db.database.commit()
+        cursor.close()
+
+        return redirect(url_for('trabajadorpacientes', success='El paciente se actualizo exitosamente'))
+    
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al actualizar el paciente:", e)
+        return redirect(url_for('trabajadorpacientes', error='Error al actualizar el paciente'))
+
+
+@app.route('/trabajador_add_paciente', methods=['POST'])
+def trabajador_agregar_paciente():
+    cedula = request.form['cedula']
+    nombre = request.form['nombre']
+    apellido = request.form['apellido']
+    telefono = request.form['telefono']
+    correo = request.form['correo']
+    
+    cursor = db.database.cursor()
+    
+    try:
+        #verificar si la cedula del paciente ya existe en la base de datos
+        cursor = db.database.cursor()
+        cursor.execute("SELECT COUNT(*) FROM Pacientes WHERE Cedula = %s", (cedula,))
+        cedula_existente = cursor.fetchone()[0] > 0
+        
+        if cedula_existente:
+            cursor.close()
+            return redirect(url_for('trabajadorpacientes', error='Este paciente ya existe. porfavor verifique que el numero de cedula sea el correcto'))
+        else:
+            #Si la cedula no existe, proceder con el registro del paciente
+            sql = "INSERT INTO Pacientes (Cedula, Nombre, Apellido, Telefono, Correo) VALUES (%s, %s, %s, %s, %s)"
+        data = (cedula, nombre, apellido, telefono, correo)
+        cursor.execute(sql, data)
+        db.database.commit()
+        cursor.close()
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al agregar el paciente:", e)
+        return redirect(url_for('trabajadorpacientes', error='Error al agregar el paciente'))
+
+@app.route('/trabajador_edit_ingreso/<int:id>', methods=['POST'])
+def trabajador_edit_ingreso(id):
+    cedula = request.form['cedula']
+    procedimiento = request.form['procedimiento1']
+    fecha = request.form['fecha']
+    monto_total = request.form['monto_total1']
+    metodo_pago = request.form['metodo_pago']
+    moneda = request.form['moneda']
+    descuento = request.form['descuento1']
+    observaciones = request.form['observaciones']
+    concepto = request.form['concepto1']
+
+    try:
+        cursor = db.database.cursor()
+        cursor.execute("UPDATE Ingresos SET Cedula=%s, IdProcedimiento=%s, Fecha=%s, MontoTotal=%s, IdMetodoPago=%s, IdMoneda=%s, Descuento=%s, Observaciones=%s WHERE IdIngreso=%s", (cedula, procedimiento, fecha, monto_total, metodo_pago, moneda, descuento, observaciones, id))
+        db.database.commit()
+        
+        # Actualizar el registro correspondiente en la tabla Caja
+        cursor.execute("UPDATE Caja SET Fecha=%s, Concepto=%s, Monto=%s, IdMetodoPago=%s, IdMoneda=%s, Observaciones=%s WHERE IdIngreso=%s", (fecha, concepto, monto_total, metodo_pago, moneda, observaciones, id))
+        db.database.commit()
+        
+        cursor.close()
+
+        return redirect(url_for('trabajadoringresos', success='El ingreso fue actualizado satisfactoriamente'))
+    
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al editar el Ingreso:", e)
+        return redirect(url_for('trabajadoringresos', error='Error al editar el Ingreso'))
+
+@app.route('/trabajador_add_ingreso', methods=['POST'])
+def trabajador_add_ingreso():
+    cedula = request.form['Cedula']
+    procedimiento = request.form['procedimiento']
+    fecha = request.form['fecha']
+    monto_total = request.form['monto_total']
+    metodo_pago = request.form['metodo_pago']
+    moneda = request.form['moneda']
+    descuento = request.form['descuento']
+    observaciones = request.form['observaciones']
+    concepto = request.form['concepto']
+    
+    
+    
+    try:
+        #verificar si la cedula del paciente ya existe en la base de datos
+        cursor = db.database.cursor()
+        cursor.execute("SELECT COUNT(*) FROM Pacientes WHERE Cedula = %s", (cedula,))
+        cedula_existente = cursor.fetchone()[0] > 0
+        
+        if cedula_existente:
+            cursor.close()
+            
+            cursor = db.database.cursor()
+            
+            # Insertar el ingreso en la tabla Ingresos
+            cursor.execute("INSERT INTO Ingresos (Cedula, IdProcedimiento, Fecha, MontoTotal, IdMetodoPago, IdMoneda, Descuento, Observaciones) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (cedula, procedimiento, fecha, monto_total, metodo_pago, moneda, descuento, observaciones))
+            db.database.commit()  # Confirmar la transacción antes de obtener el ID
+            ingreso_id = cursor.lastrowid  # Obtener el ID del ingreso recién insertado
+            
+            # Insertar en la tabla Caja
+            cursor.execute("INSERT INTO Caja (Fecha, TipoMovimiento, IdIngreso, Concepto, Monto, IdMetodoPago, IdMoneda, Observaciones) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (fecha, 'Ingreso', ingreso_id, concepto, monto_total, metodo_pago, moneda, observaciones))
+            
+            # Obtener la cantidad de producto utilizado en el procedimiento
+            cursor.execute("SELECT IdProductoPrincipal, cantidadProducto FROM Procedimientos WHERE IdProcedimiento = %s", (procedimiento,))
+            producto_info = cursor.fetchone()
+            producto_id, cantidad_producto = producto_info[0], producto_info[1]
+            
+            # Actualizar el stock actual en la tabla Productos
+            cursor.execute("UPDATE Productos SET StockActual = StockActual - %s WHERE IdProducto = %s", (cantidad_producto, producto_id))
+            
+            db.database.commit()
+            cursor.close()
+            
+            return redirect(url_for('trabajadoringresos', success='El ingreso se guardo correctamente'))
+        
+        else:
+            return redirect(url_for('trabajadoringresos', error='La cedula digitada no existe. Verifique la cedula que digitada sea correcta'))
+    
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al agregar el Ingreso:", e)
+        return redirect(url_for('trabajadoringresos', error='Error al agregar el Ingreso'))
+
+@app.route('/trabajador_edit_egreso/<int:id>', methods=['POST'])
+def trabajador_edit_egreso(id):
+    concepto = request.form['concepto']
+    monto = request.form['monto']
+    fecha = request.form['fecha']
+    metodo_pago = request.form['metodo_pago']
+    moneda = request.form['moneda']
+    observaciones = request.form['observaciones']
+    
+    try:
+
+        cursor = db.database.cursor()
+        cursor.execute("UPDATE Egresos SET Concepto=%s, Monto=%s, Fecha=%s, IdMetodoPago=%s, IdMoneda=%s, Observaciones=%s WHERE IdEgreso=%s", (concepto, monto, fecha, metodo_pago, moneda, observaciones, id))
+        db.database.commit()
+
+        # Actualizar el registro correspondiente en la tabla Caja
+        cursor.execute("UPDATE Caja SET Fecha=%s, Concepto=%s, Monto=%s, IdMetodoPago=%s, IdMoneda=%s, Observaciones=%s WHERE IdEgreso=%s", (fecha, concepto, monto, metodo_pago, moneda, observaciones, id))
+        db.database.commit()
+
+        cursor.close()
+
+        return redirect(url_for('trabajadoregresos', success='El egreso se edito de manera exitosa'))
+    
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al editar el Egreso:", e)
+        return redirect(url_for('trabajadoregresos', error='Error al editar el Egreso'))
+
+@app.route('/trabajador_add_egreso', methods=['POST'])
+def trabajador_add_egreso():
+    concepto = request.form['concepto']
+    monto = request.form['monto']
+    fecha = request.form['fecha']
+    metodo_pago = request.form['metodo_pago']
+    moneda = request.form['moneda']
+    observaciones = request.form['observaciones']
+
+    try:
+        cursor = db.database.cursor()
+        cursor.execute("INSERT INTO Egresos (Concepto, Monto, Fecha, IdMetodoPago, IdMoneda, Observaciones) VALUES (%s, %s, %s, %s, %s, %s)", (concepto, monto, fecha, metodo_pago, moneda, observaciones))
+        db.database.commit()  # Confirmar la transacción antes de obtener el ID
+        egreso_id = cursor.lastrowid  # Obtener el ID del egreso recién insertado
+        # Insertar en la tabla Caja
+        cursor.execute("INSERT INTO Caja (Fecha, TipoMovimiento, IdEgreso, Concepto, Monto, IdMetodoPago, IdMoneda, Observaciones) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", (fecha, 'Egreso', egreso_id, concepto, monto, metodo_pago, moneda, observaciones))
+        
+        db.database.commit()
+        cursor.close()
+
+        return redirect(url_for('trabajadoregresos', success='Egreso guardado satisfactoriamente'))
+    
+    except db.Error as e:
+        db.database.rollback()
+        print("Error al agregar egreso")
+        return redirect(url_for('trabajadoregresos', error='Error al agregar el egreso'))
+
+
 
 @app.route('/roles')
 def roles():
@@ -60,9 +321,9 @@ def roles():
     
     # Capturar los mensajes de error y éxito de los parámetros de la URL
     error = request.args.get('error')
-    success_msg = request.args.get('success_msg')
+    success = request.args.get('success')
     
-    return render_template('roles.html', roles=roles, error=error, success_msg=success_msg)
+    return render_template('roles.html', roles=roles, error=error, success=success)
 
 @app.route('/add_role', methods=['POST'])
 def add_role():
@@ -83,7 +344,7 @@ def add_role():
                 cursor.execute("INSERT INTO Roles (NombreRol) VALUES (%s)", (nombre,))
                 db.database.commit()
                 cursor.close()
-                return redirect(url_for('roles', success_msg='Rol agregado exitosamente.'))
+                return redirect(url_for('roles', success='Rol agregado exitosamente.'))
         except db.Error as e:
             db.database.rollback()
             print("Error al agregar el rol:", e)
@@ -212,14 +473,14 @@ def delete_user(id):
 @app.route('/categorias')
 def categorias():
     error = request.args.get('error')
-    success_msg = request.args.get('success_msg')
+    success = request.args.get('success')
     
     cursor = db.database.cursor()
     cursor.execute("SELECT * FROM Categorias")
     categorias = cursor.fetchall()
     cursor.close()
     
-    return render_template('categorias.html', categorias=categorias, error=error, success_msg=success_msg)
+    return render_template('categorias.html', categorias=categorias, error=error, success=success)
 
 @app.route('/add_categoria', methods=['POST'])
 def add_categoria():
@@ -240,7 +501,7 @@ def add_categoria():
                 cursor.execute("INSERT INTO Categorias (NombreCategoria) VALUES (%s)", (nombre,))
                 db.database.commit()
                 cursor.close()
-                return redirect(url_for('categorias', success_msg='Categoría agregada exitosamente.'))
+                return redirect(url_for('categorias', success='Categoría agregada exitosamente.'))
         except db.Error as e:
             db.database.rollback()
             print("Error al agregar la categoría:", e)
@@ -255,7 +516,7 @@ def edit_categoria(id):
             cursor.execute("UPDATE Categorias SET NombreCategoria = %s WHERE IdCategoria = %s", (nombre, id))
             db.database.commit()
             cursor.close()
-            return redirect(url_for('categorias', success_msg='Categoría actualizada exitosamente.'))
+            return redirect(url_for('categorias', success='Categoría actualizada exitosamente.'))
         except db.Error as e:
             db.database.rollback()
             print("Error al actualizar la categoría:", e)
@@ -268,7 +529,7 @@ def delete_categoria(id):
         cursor.execute("DELETE FROM Categorias WHERE IdCategoria = %s", (id,))
         db.database.commit()
         cursor.close()
-        return redirect(url_for('categorias', success_msg='Categoría eliminada exitosamente.'))
+        return redirect(url_for('categorias', success='Categoría eliminada exitosamente.'))
     except db.Error as e:
         db.database.rollback()
         print("Error al eliminar la categoría:", e)
@@ -921,11 +1182,49 @@ def eliminar_metodo_pago(id):
 
 @app.route('/caja')
 def caja():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    query = "SELECT * FROM Caja"
+    filters = []
+    
+    if start_date:
+        filters.append(f"Fecha >= '{start_date}'")
+    if end_date:
+        filters.append(f"Fecha <= '{end_date}'")
+    
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+    
     cursor = db.database.cursor()
-    cursor.execute("SELECT * FROM Caja")
+    cursor.execute(query)
     movimientos_caja = cursor.fetchall()
     cursor.close()
+    
     return render_template('caja.html', movimientos_caja=movimientos_caja)
+
+@app.route('/cajaTrabajador')
+def cajaTrabajador():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    query = "SELECT * FROM Caja"
+    filters = []
+    
+    if start_date:
+        filters.append(f"Fecha >= '{start_date}'")
+    if end_date:
+        filters.append(f"Fecha <= '{end_date}'")
+    
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+    
+    cursor = db.database.cursor()
+    cursor.execute(query)
+    movimientos_caja = cursor.fetchall()
+    cursor.close()
+    
+    return render_template('trabajadorcaja.html', movimientos_caja=movimientos_caja)
 
 @app.route('/edit_movimiento_caja/<int:id>', methods=['POST'])
 def edit_movimiento_caja(id):
@@ -952,7 +1251,283 @@ def delete_movimiento_caja(id):
     cursor.close()
     return redirect(url_for('caja'))
 
+@app.route('/reporte')
+def reporte():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    query = "SELECT * FROM Caja"
+    filters = []
+    
+    if start_date:
+        filters.append(f"Fecha >= '{start_date}'")
+    if end_date:
+        filters.append(f"Fecha <= '{end_date}'")
+    
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+    
+    cursor = db.database.cursor()
+    cursor.execute(query)
+    movimientos_caja = cursor.fetchall()
+    cursor.close()
+    
+    total_ingresos = 0
+    total_egresos = 0
+    total_transferencia_ingresos = 0
+    total_efectivo_ingresos = 0
+    total_transferencia_egresos = 0
+    total_efectivo_egresos = 0
+    ingresos_otra_moneda = 0
+    egresos_otra_moneda = 0
+    
+    for movimiento in movimientos_caja:
+        tipo_movimiento = movimiento[2]
+        monto = float(movimiento[6])
+        metodo_pago = movimiento[7]
+        moneda = movimiento[8]
+        
+        if tipo_movimiento == "Ingreso":
+            total_ingresos += monto
+            if metodo_pago == 1:
+                total_transferencia_ingresos += monto
+            elif moneda != 2:
+                ingresos_otra_moneda += monto
+            else:
+                total_efectivo_ingresos += monto
+        elif tipo_movimiento == "Egreso":
+            total_egresos += monto
+            if metodo_pago == 1:
+                total_transferencia_egresos += monto
+            elif moneda != 2:
+                egresos_otra_moneda += monto
+            else:
+                total_efectivo_egresos += monto
+    
+    total_caja = total_ingresos - total_egresos
+    total_otra_moneda = ingresos_otra_moneda - egresos_otra_moneda
+    
+    return render_template('reporte.html', start_date=start_date, end_date=end_date, total_ingresos=total_ingresos, 
+                           total_egresos=total_egresos, total_caja=total_caja, 
+                           total_transferencia_ingresos=total_transferencia_ingresos, 
+                           total_transferencia_egresos=total_transferencia_egresos, total_efectivo_ingresos=total_efectivo_ingresos, 
+                           total_efectivo_egresos=total_efectivo_egresos, total_otra_moneda=total_otra_moneda)
+    
+    
+@app.route('/reporteTrabajador')
+def reporteTrabajador():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    query = "SELECT * FROM Caja"
+    filters = []
+    
+    if start_date:
+        filters.append(f"Fecha >= '{start_date}'")
+    if end_date:
+        filters.append(f"Fecha <= '{end_date}'")
+    
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+    
+    cursor = db.database.cursor()
+    cursor.execute(query)
+    movimientos_caja = cursor.fetchall()
+    cursor.close()
+    
+    total_ingresos = 0
+    total_egresos = 0
+    total_transferencia_ingresos = 0
+    total_efectivo_ingresos = 0
+    total_transferencia_egresos = 0
+    total_efectivo_egresos = 0
+    ingresos_otra_moneda = 0
+    egresos_otra_moneda = 0
+    
+    for movimiento in movimientos_caja:
+        tipo_movimiento = movimiento[2]
+        monto = float(movimiento[6])
+        metodo_pago = movimiento[7]
+        moneda = movimiento[8]
+        
+        if tipo_movimiento == "Ingreso":
+            total_ingresos += monto
+            if metodo_pago == 1:
+                total_transferencia_ingresos += monto
+            elif moneda != 2:
+                ingresos_otra_moneda += monto
+            else:
+                total_efectivo_ingresos += monto
+        elif tipo_movimiento == "Egreso":
+            total_egresos += monto
+            if metodo_pago == 1:
+                total_transferencia_egresos += monto
+            elif moneda != 2:
+                egresos_otra_moneda += monto
+            else:
+                total_efectivo_egresos += monto
+    
+    total_caja = total_ingresos - total_egresos
+    total_otra_moneda = ingresos_otra_moneda - egresos_otra_moneda
+    
+    return render_template('reporteTrabajador.html', start_date=start_date, end_date=end_date, total_ingresos=total_ingresos, 
+                           total_egresos=total_egresos, total_caja=total_caja, 
+                           total_transferencia_ingresos=total_transferencia_ingresos, 
+                           total_transferencia_egresos=total_transferencia_egresos, total_efectivo_ingresos=total_efectivo_ingresos, 
+                           total_efectivo_egresos=total_efectivo_egresos, total_otra_moneda=total_otra_moneda)
+    
+    
+@app.route('/reporteTrabajador/pdf')
+def reporteTrabajador_pdf():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
 
+    query = "SELECT * FROM Caja"
+    filters = []
+    
+    if start_date:
+        filters.append(f"Fecha >= '{start_date}'")
+    if end_date:
+        filters.append(f"Fecha <= '{end_date}'")
+    
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+    
+    cursor = db.database.cursor()
+    cursor.execute(query)
+    movimientos_caja = cursor.fetchall()
+    cursor.close()
+    
+    total_ingresos = 0
+    total_egresos = 0
+    total_transferencia_ingresos = 0
+    total_efectivo_ingresos = 0
+    total_transferencia_egresos = 0
+    total_efectivo_egresos = 0
+    ingresos_otra_moneda = 0
+    egresos_otra_moneda = 0
+    
+    for movimiento in movimientos_caja:
+        tipo_movimiento = movimiento[2]
+        monto = float(movimiento[6])
+        metodo_pago = movimiento[7]
+        moneda = movimiento[8]
+        
+        if tipo_movimiento == "Ingreso":
+            total_ingresos += monto
+            if metodo_pago == 1:
+                total_transferencia_ingresos += monto
+            elif moneda != 2:
+                ingresos_otra_moneda += monto
+            else:
+                total_efectivo_ingresos += monto
+        elif tipo_movimiento == "Egreso":
+            total_egresos += monto
+            if metodo_pago == 1:
+                total_transferencia_egresos += monto
+            elif moneda != 2:
+                egresos_otra_moneda += monto
+            else:
+                total_efectivo_egresos += monto
+    
+    
+    total_caja = total_ingresos - total_egresos
+    total_otra_moneda = ingresos_otra_moneda - egresos_otra_moneda
+    
+    # Renderiza la plantilla HTML
+    html = render_template('reporteTrabajador.html',
+                           start_date=start_date, end_date=end_date,
+                           total_ingresos=total_ingresos, total_egresos=total_egresos,
+                           total_caja=total_caja, 
+                           total_transferencia_ingresos=total_transferencia_ingresos, 
+                           total_transferencia_egresos=total_transferencia_egresos, total_efectivo_ingresos=total_efectivo_ingresos, 
+                           total_efectivo_egresos=total_efectivo_egresos, total_otra_moneda=total_otra_moneda)
+
+    # Generar el PDF desde la cadena HTML renderizada
+    pdf = pdfkit.from_string(html, False, configuration=config)
+
+    response = make_response(pdf)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'attachment; filename=reporte.pdf'
+    
+    return response
+    
+    
+# Nueva ruta para generar el PDF
+@app.route('/reporte/pdf')
+def reporte_pdf():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    query = "SELECT * FROM Caja"
+    filters = []
+    
+    if start_date:
+        filters.append(f"Fecha >= '{start_date}'")
+    if end_date:
+        filters.append(f"Fecha <= '{end_date}'")
+    
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+    
+    cursor = db.database.cursor()
+    cursor.execute(query)
+    movimientos_caja = cursor.fetchall()
+    cursor.close()
+    
+    total_ingresos = 0
+    total_egresos = 0
+    total_transferencia_ingresos = 0
+    total_efectivo_ingresos = 0
+    total_transferencia_egresos = 0
+    total_efectivo_egresos = 0
+    ingresos_otra_moneda = 0
+    egresos_otra_moneda = 0
+    
+    for movimiento in movimientos_caja:
+        tipo_movimiento = movimiento[2]
+        monto = float(movimiento[6])
+        metodo_pago = movimiento[7]
+        moneda = movimiento[8]
+        
+        if tipo_movimiento == "Ingreso":
+            total_ingresos += monto
+            if metodo_pago == 1:
+                total_transferencia_ingresos += monto
+            elif moneda != 2:
+                ingresos_otra_moneda += monto
+            else:
+                total_efectivo_ingresos += monto
+        elif tipo_movimiento == "Egreso":
+            total_egresos += monto
+            if metodo_pago == 1:
+                total_transferencia_egresos += monto
+            elif moneda != 2:
+                egresos_otra_moneda += monto
+            else:
+                total_efectivo_egresos += monto
+    
+    
+    total_caja = total_ingresos - total_egresos
+    total_otra_moneda = ingresos_otra_moneda - egresos_otra_moneda
+    
+    # Renderiza la plantilla HTML
+    html = render_template('reporte.html',
+                           start_date=start_date, end_date=end_date,
+                           total_ingresos=total_ingresos, total_egresos=total_egresos,
+                           total_caja=total_caja, 
+                           total_transferencia_ingresos=total_transferencia_ingresos, 
+                           total_transferencia_egresos=total_transferencia_egresos, total_efectivo_ingresos=total_efectivo_ingresos, 
+                           total_efectivo_egresos=total_efectivo_egresos, total_otra_moneda=total_otra_moneda)
+
+    # Generar el PDF desde la cadena HTML renderizada
+    pdf = pdfkit.from_string(html, False, configuration=config)
+
+    response = make_response(pdf)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'attachment; filename=reporte.pdf'
+    
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True, port=4500)
