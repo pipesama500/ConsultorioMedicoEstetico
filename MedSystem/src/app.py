@@ -22,6 +22,7 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
+        success = request.args.get('success')
         
         # Consulta a la base de datos para autenticar al usuario
         cursor = db.database.cursor()
@@ -33,9 +34,9 @@ def login():
         if usuario:
             id_usuario, id_rol = usuario
             if id_rol == 1:  # Administrador
-                return redirect(url_for('adminInicio'))
+                return redirect(url_for('adminInicioLogin'))
             elif id_rol == 2:  # Trabajador
-                return redirect(url_for('trabajadorInicio'))
+                return redirect(url_for('trabajadorInicioLogin'))
         else:
             # Credenciales inválidas
             return render_template('login.html', error='Credenciales inválidas')
@@ -44,9 +45,15 @@ def login():
 
 @app.route('/adminInicio')
 def adminInicio():
+    success = request.args.get('success')
     return render_template('adminInicio.html')
 
-@app.route('/adminInicio.html')  # Ruta para redireccionar al inicio
+@app.route('/adminInicioLogin')
+def adminInicioLogin():
+    success = request.args.get('success')
+    return render_template('adminInicio.html', success='Bienvenido a MedSystem')
+
+@app.route('/adminInicio.html') 
 def admin_inicio():
     return redirect(url_for('adminInicio'))
 
@@ -54,9 +61,16 @@ def admin_inicio():
 def trabajadorInicio():
     return render_template('trabajadorInicio.html')
 
+@app.route('/trabajadorInicioLogin')
+def trabajadorInicioLogin():
+    success = request.args.get('success')
+    return render_template('trabajadorInicio.html', success='Bienvenido a MedSystem')
+
 @app.route('/trabajadorInicio.html')
 def trabajador_inicio():
     return redirect(url_for('trabajadorInicio'))
+
+
 
 #------------------------------------|Vistas permitidas del trabajador|---------------------------------
 

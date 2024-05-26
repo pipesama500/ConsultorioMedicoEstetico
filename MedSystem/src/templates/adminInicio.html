@@ -31,7 +31,12 @@
         .btn-danger:hover {
             background-color: #A02420;
             border-color: #A02420;
-        }   
+        }
+        .alert-success-custom {
+            background-color: #E8D5BE;
+            border-color: #E8D5BE;
+            color: #3B2E20;
+        }
         .image-link {
             position: fixed;
             bottom: 0;
@@ -39,8 +44,8 @@
             margin: 10px;
         }
         .image-link img {
-            width: 100px; /* Ajusta el tamaño de la imagen según tus necesidades */
-            height: 100px; /* Ajusta el tamaño de la imagen según tus necesidades */
+            width: 100px;
+            height: 100px;
         }
     </style>
 </head>
@@ -48,6 +53,20 @@
     <div class="container">
         <div class="row justify-content-center mt-5">
             <div class="col-md-8">
+                {% if error %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ error }} 
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                {% endif %}
+                {% if success %}
+                <div class="alert alert-success alert-dismissible fade show alert-success-custom" role="alert">
+                    <h5>{{ success }}</h5>
+                    
+                </div>
+                {% endif %}
                 <div class="card">
                     <div class="card-header">
                         <h4>Usuario</h4>
@@ -126,8 +145,17 @@
         </a>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            setTimeout(function() {
+                $(".alert").fadeTo(500, 0).slideUp(600, function(){
+                    $(this).remove(); 
+                });
+            }, 1500); // 1.5 seconds
+        });
+    </script>
 </body>
 </html>
