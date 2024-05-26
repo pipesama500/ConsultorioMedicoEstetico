@@ -45,7 +45,6 @@
                 <p class="card-text"><strong>Total de Egresos en Transferencia:</strong> ${{ total_transferencia_egresos }}</p>
                 <p class="card-text"><strong>Total de Ingresos en Efectivo:</strong> ${{ total_efectivo_ingresos }}</p>
                 <p class="card-text"><strong>Total de Egresos en Efectivo:</strong> ${{ total_efectivo_egresos }}</p>
-                <p class="card-text"><strong>Total en Otras Monedas:</strong> ${{ total_otra_moneda }}</p>
                 <a href="{{ url_for('caja') }}" class="btn btn-primary">Regresar</a>
                 <a href="{{ url_for('reporte_pdf', start_date=start_date, end_date=end_date) }}" class="btn btn-secondary">Descargar PDF</a>
             </div>
