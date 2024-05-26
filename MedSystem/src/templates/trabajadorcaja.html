@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movimientos de Caja</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #E8D5BE;
+            color: #3B2E20;
+        }
+        .card {
+            border: 2px solid #825F38;
+            background-color: #E8D5BE;
+        }
+        .btn-primary {
+            background-color: #825F38;
+            border-color: #825F38;
+        }
+        .btn-primary:hover {
+            background-color: #9B7453;
+            border-color: #9B7453;
+        }
+        .btn-danger {
+            background-color: #B0413E;
+            border-color: #B0413E;
+        }
+        .btn-danger:hover {
+            background-color: #D16866;
+            border-color: #D16866;
+        }
+        .table-bordered {
+            border-color: #825F38;
+        }
+        .table-bordered th,
+        .table-bordered td {
+            border-color: #825F38;
+        }
+        .modal-content {
+            background-color: #E8D5BE;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="text-center mt-5 mb-5">Movimientos de Caja</h1>
+    <div class="container">
+        <div class="card shadow">
+            <div class="card-body">
+
+                <!-- Formulario de búsqueda -->
+                <form class="mb-4" method="GET" action="{{ url_for('cajaTrabajador') }}">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="start_date" class="form-label">Fecha Inicio</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="end_date" class="form-label">Fecha Fin</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ request.args.get('end_date') }}">
+                        </div>
+                        <div class="col-md-3 align-self-end">
+                            <button type="submit" class="btn btn-primary">Buscar</button>
+                            <a href="{{ url_for('reporteTrabajador', start_date=request.args.get('start_date'), end_date=request.args.get('end_date')) }}" class="btn btn-secondary">Generar Reporte</a>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Tabla -->
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Fecha</th>
+                            <th scope="col">Tipo de Movimiento</th>
+                            <th scope="col">ID Ingreso</th>
+                            <th scope="col">ID Egreso</th>
+                            <th scope="col">Concepto</th>
+                            <th scope="col">Monto</th>
+                            <th scope="col">ID Método de Pago</th>
+                            <th scope="col">ID Moneda</th>
+                            <th scope="col">Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movimiento in movimientos_caja %}
+                            <tr>
+                                <td>{{ movimiento[0] }}</td>
+                                <td>{{ movimiento[1] }}</td>
+                                <td>{{ movimiento[2] }}</td>
+                                <td>{{ movimiento[3] }}</td>
+                                <td>{{ movimiento[4] }}</td>
+                                <td>{{ movimiento[5] }}</td>
+                                <td>{{ movimiento[6] }}</td>
+                                <td>{{ movimiento[7] }}</td>
+                                <td>{{ movimiento[8] }}</td>
+                                <td>{{ movimiento[9] }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer text-muted">
+                <a href="/trabajadorInicio.html" class="btn btn-primary">Ir a Inicio</a>
+                <a href="{{ url_for('trabajadoringresos') }}" class="btn btn-primary">Ir a Ingresos</a>
+                <a href="{{ url_for('trabajadoregresos') }}" class="btn btn-primary">Ir a Egresos</a>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

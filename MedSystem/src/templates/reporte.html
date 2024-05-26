@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Movimientos de Caja</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #E8D5BE;
+            color: #3B2E20;
+        }
+        .card {
+            border: 2px solid #825F38;
+            background-color: #E8D5BE;
+        }
+        .btn-primary {
+            background-color: #825F38;
+            border-color: #825F38;
+        }
+        .btn-primary:hover {
+            background-color: #9B7453;
+            border-color: #9B7453;
+        }
+        .btn-secondary {
+            background-color: #9B7453;
+            border-color: #9B7453;
+        }
+        .btn-secondary:hover {
+            background-color: #B28A72;
+            border-color: #B28A72;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="text-center mt-5 mb-5">Reporte de Movimientos de Caja</h1>
+    <div class="container">
+        <div class="card shadow">
+            <div class="card-body">
+                <h5 class="card-title">Reporte desde {{ start_date }} hasta {{ end_date }}</h5>
+                <p class="card-text"><strong>Total de Ingresos:</strong> ${{ total_ingresos }}</p>
+                <p class="card-text"><strong>Total de Egresos:</strong> ${{ total_egresos }}</p>
+                <p class="card-text"><strong>Total de la Caja:</strong> ${{ total_caja }}</p>
+                <p class="card-text"><strong>Total de Ingresos en Transferencia:</strong> ${{ total_transferencia_ingresos }}</p>
+                <p class="card-text"><strong>Total de Egresos en Transferencia:</strong> ${{ total_transferencia_egresos }}</p>
+                <p class="card-text"><strong>Total de Ingresos en Efectivo:</strong> ${{ total_efectivo_ingresos }}</p>
+                <p class="card-text"><strong>Total de Egresos en Efectivo:</strong> ${{ total_efectivo_egresos }}</p>
+                <p class="card-text"><strong>Total en Otras Monedas:</strong> ${{ total_otra_moneda }}</p>
+                <a href="{{ url_for('caja') }}" class="btn btn-primary">Regresar</a>
+                <a href="{{ url_for('reporte_pdf', start_date=start_date, end_date=end_date) }}" class="btn btn-secondary">Descargar PDF</a>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
