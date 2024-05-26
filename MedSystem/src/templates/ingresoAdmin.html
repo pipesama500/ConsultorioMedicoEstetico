@@ -150,6 +150,10 @@
                 <h2>Listado de Ingresos</h2>
             </div>
             <div class="card-body">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addIngresoModal">
+                    Agregar Ingreso
+                </button>
+                <div class="mt-3"></div>
                 <!-- Tabla de ingresos -->
                 <table class="table table-bordered">
                     <thead>
@@ -267,13 +271,11 @@
                 </table>
             </div>
             <div class="card-footer">
-                <a href="{{ url_for('adminInicio') }}" class="btn btn-primary">Volver a Inicio</a>
-                <a href="{{ url_for('egresos') }}" class="btn btn-primary">Ir a Egresos</a>
                 <a href="{{ url_for('caja') }}" class="btn btn-primary">Ir a Caja</a>
+                <a href="{{ url_for('egresos') }}" class="btn btn-primary">Ir a Egresos</a>
+                <div class="mt-3"></div>
+                <a href="{{ url_for('adminInicio') }}" class="btn btn-primary">Volver a Inicio</a>
                 <!-- Botón para abrir el modal de agregar ingreso -->
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addIngresoModal">
-                    Agregar Ingreso
-                </button>
             </div>
         </div>
     </div>
